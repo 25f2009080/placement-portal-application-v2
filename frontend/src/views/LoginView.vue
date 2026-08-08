@@ -65,6 +65,15 @@ const handleLogin = async () => {
             Login
         </button>
 
+        <br><br>
+
+        <p>
+            New user?
+            <router-link to="/register">
+                Register here
+            </router-link>
+        </p>
+
         <p style="color:red">
             {{ error }}
         </p>

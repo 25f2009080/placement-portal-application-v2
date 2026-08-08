@@ -11,7 +11,7 @@ Improvement over PPA v1 in terms of UI, Performance, and Features
 3. Missing Logout button. (FIXED)
 4. Missing Login on reg button. (FIXD)
 5. Router guardrail. (FIXED)
-6. Missing reg on login button.
+6. Missing reg on login button. (FIXED)
 7. Student CGPA missing. (FIXED)
 8. JWT Expiry
 9. Deactivated user's jwt should not work.

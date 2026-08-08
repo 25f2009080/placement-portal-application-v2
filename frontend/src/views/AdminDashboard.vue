@@ -29,6 +29,8 @@ const applications = ref([]);
 const companySearch = ref("");
 const studentSearch = ref("");
 
+const selectedCompany = ref(null);
+
 
 
 async function loadDashboard() {
@@ -190,6 +192,13 @@ async function activateCompany(company) {
     }
 }
 
+async function viewCompanyDetails(company) {
+    selectedCompany.value = company;
+}
+
+async function closeCompanyDetails() {
+    selectedCompany.value = null;
+}
 
 
 async function loadStudents() {
@@ -521,6 +530,13 @@ onMounted(() => {
                                 <td>
 
                                     <button
+                                        class="action-btn details"
+                                        @click="viewCompanyDetails(company)"
+                                    >
+                                        View Details
+                                    </button>
+
+                                    <button
                                         v-if="!company.approved"
                                         class="action-btn approve"
                                         @click="approveCompany(company)"
@@ -805,6 +821,143 @@ onMounted(() => {
         </div>
 
     </div>
+
+    <div
+    v-if="selectedCompany"
+    class="details-overlay"
+    @click.self="closeCompanyDetails"
+>
+
+    <div class="details-card">
+
+        <div class="details-header">
+            <h2>Company Details</h2>
+
+            <button
+                class="close-btn"
+                @click="closeCompanyDetails"
+            >
+                ×
+            </button>
+        </div>
+
+
+        <div class="details-content">
+
+            <div class="detail-row">
+                <strong>Company ID:</strong>
+                <span>{{ selectedCompany.company_id }}</span>
+            </div>
+
+            <div class="detail-row">
+                <strong>Company Name:</strong>
+                <span>{{ selectedCompany.name }}</span>
+            </div>
+
+            <div class="detail-row">
+                <strong>Industry:</strong>
+                <span>{{ selectedCompany.industry }}</span>
+            </div>
+
+            <div class="detail-row">
+                <strong>Location:</strong>
+                <span>{{ selectedCompany.location }}</span>
+            </div>
+
+            <div class="detail-row">
+                <strong>Website:</strong>
+
+                <span v-if="selectedCompany.website">
+                    <a
+                        :href="selectedCompany.website"
+                        target="_blank"
+                    >
+                        {{ selectedCompany.website }}
+                    </a>
+                </span>
+
+                <span v-else>
+                    -
+                </span>
+            </div>
+
+            <div class="detail-row">
+                <strong>Description:</strong>
+                <span>
+                    {{ selectedCompany.description || "-" }}
+                </span>
+            </div>
+
+
+            <hr>
+
+
+            <h3>HR Contact</h3>
+
+            <div class="detail-row">
+                <strong>HR Name:</strong>
+                <span>{{ selectedCompany.hr_name }}</span>
+            </div>
+
+            <div class="detail-row">
+                <strong>HR Email:</strong>
+
+                <span>
+                    <a
+                        :href="`mailto:${selectedCompany.hr_email}`"
+                    >
+                        {{ selectedCompany.hr_email }}
+                    </a>
+                </span>
+            </div>
+
+
+            <hr>
+
+
+            <div class="detail-row">
+                <strong>Status:</strong>
+
+                <span
+                    v-if="!selectedCompany.is_active"
+                    class="status inactive"
+                >
+                    Deactivated
+                </span>
+
+                <span
+                    v-else-if="!selectedCompany.approved"
+                    class="status pending"
+                >
+                    Pending Approval
+                </span>
+
+                <span
+                    v-else
+                    class="status active"
+                >
+                    Approved & Active
+                </span>
+            </div>
+
+        </div>
+
+
+        <div class="details-footer">
+
+            <button
+                class="action-btn"
+                @click="closeCompanyDetails"
+            >
+                Close
+            </button>
+
+        </div>
+
+    </div>
+
+    </div>
+
 </template>
 
 
@@ -980,6 +1133,103 @@ th {
     text-align: center;
     color: #777;
     background: #f8f8f8;
+}
+
+.details {
+    background: #6f42c1;
+    color: white;
+}
+
+.details-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    z-index: 1000;
+}
+
+.details-card {
+    width: 600px;
+    max-width: 90%;
+    max-height: 85vh;
+
+    overflow-y: auto;
+
+    background: white;
+    border-radius: 10px;
+
+    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+}
+
+.details-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+
+    padding: 20px;
+
+    border-bottom: 1px solid #eee;
+}
+
+.details-header h2 {
+    margin: 0;
+}
+
+.close-btn {
+    border: none;
+    background: transparent;
+
+    font-size: 28px;
+    cursor: pointer;
+
+    color: #555;
+}
+
+.close-btn:hover {
+    color: #000;
+}
+
+.details-content {
+    padding: 20px;
+}
+
+.detail-row {
+    display: grid;
+    grid-template-columns: 150px 1fr;
+    gap: 15px;
+
+    padding: 10px 0;
+
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.detail-row strong {
+    color: #555;
+}
+
+.details-content h3 {
+    margin-top: 10px;
+}
+
+.details-content hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 20px 0;
+}
+
+.details-footer {
+    padding: 15px 20px;
+
+    border-top: 1px solid #eee;
+
+    text-align: right;
 }
 
 @media (max-width: 900px) {

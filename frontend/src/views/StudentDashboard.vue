@@ -1,23 +1,20 @@
 <script setup>
-import { ref, onMounted } from "vue";
-import api from "../services/api";
+import LogoutButton from "../components/LogoutButton.vue";
+import { getCurrentUser } from "../services/authService";
 
-const user = ref(null);
-
-onMounted(async () => {
-    try {
-        const response = await api.get("/api/profile");
-        user.value = response.data;
-    } catch (err) {
-        console.error(err);
-    }
-});
+const user = getCurrentUser();
 </script>
 
 <template>
     <div>
         <h1>Student Dashboard</h1>
 
-        <pre>{{ user }}</pre>
+        <h3>Welcome, {{ user.username }}!</h3>
+
+        <p><strong>Email:</strong> {{ user.email }}</p>
+
+        <p><strong>Role:</strong> {{ user.role }}</p>
+
+        <LogoutButton />
     </div>
 </template>

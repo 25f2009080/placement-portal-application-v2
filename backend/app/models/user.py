@@ -5,6 +5,9 @@ from app import db, bcrypt
 
 class User(db.Model):
     __tablename__ = "users"
+    ADMIN = "admin"
+    STUDENT = "student"
+    COMPANY = "company"
 
     id = db.Column(db.Integer, primary_key=True)
 

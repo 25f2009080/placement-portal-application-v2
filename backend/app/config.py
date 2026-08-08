@@ -4,6 +4,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY") or "verysecret321"
+    JWT_SECRET_KEY = "jwtsecret123"
 
     SQLALCHEMY_DATABASE_URI = (
         "sqlite:///" + os.path.join(BASE_DIR, "instance", "placement_portal.db")

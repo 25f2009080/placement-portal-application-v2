@@ -21,12 +21,27 @@ const selected = ref(null);
             </button>
         </div>
 
-        <StudentRegisterForm
-            v-if="selected === 'student'"
-        />
+        <div v-else>
+            <button @click="selected = null">
+                ← Back
+            </button>
 
-        <CompanyRegisterForm
-            v-if="selected === 'company'"
-        />
+            <StudentRegisterForm
+                v-if="selected === 'student'"
+            />
+
+            <CompanyRegisterForm
+                v-if="selected === 'company'"
+            />
+        </div>
+
+        <hr>
+
+        <p>
+            Already a user?
+            <router-link to="/login">
+                Login here
+            </router-link>
+        </p>
     </div>
 </template>

@@ -1,18 +1,17 @@
 <script setup>
 import { useRouter } from "vue-router";
+import { logout } from "../services/authService";
 
 const router = useRouter();
 
-function logout() {
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-
+function handleLogout() {
+    logout();
     router.push("/login");
 }
 </script>
 
 <template>
-    <button @click="logout">
+    <button @click="handleLogout">
         Logout
     </button>
 </template>

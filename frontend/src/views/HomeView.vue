@@ -1,5 +1,6 @@
 <script setup>
 import { useRouter } from "vue-router";
+import LogoutButton from "../components/LogoutButton.vue";
 import {
     isAuthenticated,
     getCurrentUser,
@@ -41,7 +42,13 @@ function handleLogout() {
             Companies and Administrators.
         </p>
 
+        <hr>
+
         <div v-if="!authenticated">
+            <h3>Welcome!</h3>
+
+            <p>Please login or create a new account to continue.</p>
+
             <button @click="$router.push('/login')">
                 Login
             </button>
@@ -54,15 +61,13 @@ function handleLogout() {
         <div v-else>
             <h3>Welcome, {{ user.username }}!</h3>
 
-            <p>Role: {{ user.role }}</p>
+            <p><strong>Role:</strong> {{ user.role }}</p>
 
             <button @click="goToDashboard">
                 Go to Dashboard
             </button>
 
-            <button @click="handleLogout">
-                Logout
-            </button>
+            <LogoutButton />
         </div>
     </div>
 </template>

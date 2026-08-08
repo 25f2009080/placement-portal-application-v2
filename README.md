@@ -7,3 +7,4 @@ Improvement over PPA v1 in terms of UI, Performance, and Features
 
 ## Issue Log
 1. Time library in python. (FIXED)
+2. Company ID frontend/backend mismatch. 

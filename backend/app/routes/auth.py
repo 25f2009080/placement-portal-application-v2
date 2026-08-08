@@ -1,8 +1,7 @@
 from flask import Blueprint, request, jsonify
-
 from app import db
 from app.models import User, Student, Company
-
+import uuid
 from flask_jwt_extended import create_access_token
 from flask_jwt_extended import (
     jwt_required,
@@ -17,6 +16,7 @@ def register_student():
     data = request.get_json()
     if not data:
         return jsonify({
+            "success": False,
             "message": "Invalid or missing JSON data"
         }), 400
 
@@ -38,16 +38,19 @@ def register_student():
 
     if User.query.filter_by(username=data["username"]).first():
         return jsonify({
+            "success": False,
             "message": "Username already exists"
         }), 409
 
     if User.query.filter_by(email=data["email"]).first():
         return jsonify({
+            "success": False,
             "message": "Email already exists"
         }), 409
 
     if Student.query.filter_by(student_id=data["student_id"]).first():
         return jsonify({
+            "success": False,
             "message": "Student ID already exists"
         }), 409
 
@@ -73,15 +76,16 @@ def register_student():
         db.session.commit()
 
         return jsonify({
+            "success": True,
             "message": "Student registered successfully"
         }), 201
 
-    except Exception as e:
+    except Exception:
         db.session.rollback()
 
         return jsonify({
+            "success": False,
             "message": "Registration failed",
-            "error": str(e)
         }), 500
 
 @auth_bp.route("/api/register/company", methods=["POST"])
@@ -90,6 +94,7 @@ def register_company():
 
     if not data:
         return jsonify({
+            "success": False,
             "message": "Invalid or missing JSON data"
         }), 400
 
@@ -97,7 +102,6 @@ def register_company():
         "username",
         "email",
         "password",
-        "company_id",
         "name",
         "industry",
         "location",
@@ -108,22 +112,20 @@ def register_company():
     for field in required_fields:
         if not data.get(field):
             return jsonify({
+                "success": False,
                 "message": f"{field} is required"
             }), 400
 
     if User.query.filter_by(username=data["username"]).first():
         return jsonify({
+            "success": False,
             "message": "Username already exists"
         }), 409
 
     if User.query.filter_by(email=data["email"]).first():
         return jsonify({
+            "success": False,
             "message": "Email already exists"
-        }), 409
-
-    if Company.query.filter_by(company_id=data["company_id"]).first():
-        return jsonify({
-            "message": "Company ID already exists"
         }), 409
 
     try:
@@ -134,10 +136,10 @@ def register_company():
         )
 
         user.set_password(data["password"])
-
+        company_id = f"CMP-{uuid.uuid4().hex[:8].upper()}"
         company = Company(
             user=user,
-            company_id=data["company_id"],
+            company_id=company_id,
             name=data["name"],
             industry=data["industry"],
             location=data["location"],
@@ -155,13 +157,16 @@ def register_company():
         db.session.commit()
 
         return jsonify({
-            "message": "Company registered successfully. Waiting for admin approval."
+            "success": True,
+            "message": "Company registered successfully. Waiting for admin approval.",
+            "company_id": company.company_id
         }), 201
 
     except Exception:
         db.session.rollback()
 
         return jsonify({
+            "success": False,
             "message": "Registration failed"
         }), 500
 
@@ -171,6 +176,7 @@ def login():
 
     if not data:
         return jsonify({
+            "success": False,
             "message": "Invalid or missing JSON data"
         }), 400
 
@@ -179,6 +185,7 @@ def login():
 
     if not username or not password:
         return jsonify({
+            "success": False,
             "message": "Username and password are required"
         }), 400
 
@@ -186,6 +193,7 @@ def login():
 
     if not user or not user.check_password(password):
         return jsonify({
+            "success": False,
             "message": "Invalid username or password"
         }), 401
 
@@ -215,6 +223,7 @@ def login():
     )
 
     return jsonify({
+        "success": True,
         "message": "Login successful",
         "access_token": access_token,
         "user": {
@@ -238,8 +247,11 @@ def profile():
         }), 404
 
     return jsonify({
-        "id": user.id,
-        "username": user.username,
-        "email": user.email,
-        "role": user.role
+        "success": True,
+        "user": {
+            "id": user.id,
+            "username": user.username,
+            "email": user.email,
+            "role": user.role
+        }
     }), 200

@@ -7,7 +7,6 @@ const form = ref({
     username: "",
     email: "",
     password: "",
-    company_id: "",
     name: "",
     industry: "",
     location: "",
@@ -54,10 +53,6 @@ const register = async () => {
 type="password"
 v-model="form.password"
 placeholder="Password">
-
-<input
-v-model="form.company_id"
-placeholder="Company ID">
 
 <input
 v-model="form.name"

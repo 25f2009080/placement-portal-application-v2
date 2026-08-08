@@ -12,3 +12,4 @@ Improvement over PPA v1 in terms of UI, Performance, and Features
 4. Missing Login on reg button.
 5. Router guardrail
 6. TEMP : Dashboard name
+7. How to Duplicate check on companies?

@@ -28,6 +28,7 @@ def register_student():
         "name",
         "department",
         "phone",
+        "cgpa",
     ]
 
     for field in required_fields:
@@ -55,6 +56,21 @@ def register_student():
         }), 409
 
     try:
+        cgpa = float(data["cgpa"])
+
+        if cgpa < 0 or cgpa > 10:
+            return jsonify({
+                "success": False,
+                "message": "CGPA must be between 0 and 10"
+            }), 400
+
+    except (ValueError, TypeError):
+        return jsonify({
+            "success": False,
+            "message": "CGPA must be a valid number"
+        }), 400
+
+    try:
         user = User(
             username=data["username"],
             email=data["email"],
@@ -69,6 +85,7 @@ def register_student():
             name=data["name"],
             department=data["department"],
             phone=data["phone"],
+            cgpa = cgpa,
         )
 
         db.session.add(user)

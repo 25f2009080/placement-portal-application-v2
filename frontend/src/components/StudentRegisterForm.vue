@@ -16,6 +16,7 @@ const form = ref({
     name: "",
     department: "",
     phone: "",
+    cgpa: ""
 });
 
 const register = async () => {
@@ -66,6 +67,20 @@ placeholder="Department">
 <input
 v-model="form.phone"
 placeholder="Phone">
+
+<div>
+    <label for="cgpa">CGPA</label>
+
+    <input
+        id="cgpa"
+        v-model="form.cgpa"
+        type="number"
+        min="0"
+        max="10"
+        step="0.01"
+        required
+    />
+</div>
 
 <br><br>
 

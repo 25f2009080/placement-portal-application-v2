@@ -156,11 +156,16 @@ def deactivate_company(company_id):
 
     company.is_active = False
 
+    for job in company.jobs:
+        if job.status == "Active":
+            job.status = "Inactive"
+            job.last_updated_by = "admin"
+
     db.session.commit()
 
     return jsonify({
         "success": True,
-        "message": "Company deactivated successfully"
+        "message": "Company and its active job postings have been deactivated"
     }), 200
 
 

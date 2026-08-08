@@ -13,6 +13,7 @@ import NotFound from "../views/NotFound.vue";
 import {
     isAuthenticated,
     getCurrentUser,
+    logout,
 } from "../services/authService";
 
 const routes = [
@@ -72,6 +73,11 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
     const authenticated = isAuthenticated();
     const user = getCurrentUser();
+
+    if (authenticated && !user) {
+        logout();
+        return next("/login");
+    }
 
     if (to.meta.requiresAuth && !authenticated) {
         return next("/login");

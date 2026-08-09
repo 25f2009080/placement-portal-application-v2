@@ -53,6 +53,12 @@ class Student(db.Model):
         nullable=True
     )
 
+    experience = db.Column(
+        db.Text,
+        default="",
+        nullable=True
+    )
+
     resume = db.Column(
         db.String(255),
          default="",

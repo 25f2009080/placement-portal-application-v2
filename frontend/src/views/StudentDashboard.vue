@@ -28,7 +28,8 @@ const editForm = ref({
     phone: "",
     cgpa: "",
     skills: "",
-    education: ""
+    education: "",
+    experience: ""
 });
 
 
@@ -47,7 +48,8 @@ const loadProfile = async () => {
             phone: student.value.phone || "",
             cgpa: student.value.cgpa ?? "",
             skills: student.value.skills || "",
-            education: student.value.education || ""
+            education: student.value.education || "",
+            experience: student.value.experience || ""
         };
 
     } catch (error) {
@@ -167,7 +169,8 @@ const startEditing = () => {
         phone: student.value.phone || "",
         cgpa: student.value.cgpa ?? "",
         skills: student.value.skills || "",
-        education: student.value.education || ""
+        education: student.value.education || "",
+        experience: student.value.experience || ""
     };
 
     isEditing.value = true;
@@ -194,7 +197,8 @@ const saveProfile = async () => {
                 phone: editForm.value.phone,
                 cgpa: editForm.value.cgpa,
                 skills: editForm.value.skills,
-                education: editForm.value.education
+                education: editForm.value.education,
+                experience: editForm.value.experience
             }
         );
 
@@ -206,7 +210,8 @@ const saveProfile = async () => {
             phone: student.value.phone || "",
             cgpa: student.value.cgpa ?? "",
             skills: student.value.skills || "",
-            education: student.value.education || ""
+            education: student.value.education || "",
+            experience: student.value.experience || ""
         };
 
         isEditing.value = false;
@@ -378,6 +383,11 @@ onMounted(async () => {
                         <p>{{ student.education || "-" }}</p>
                     </div>
 
+                    <div class="profile-item full-width">
+                        <label>Experience</label>
+                        <p>{{ student.experience || "No experience needed" }}</p>
+                    </div>
+
 
                     <div class="profile-item full-width">
 
@@ -523,6 +533,19 @@ onMounted(async () => {
                                 v-model="editForm.education"
                                 rows="3"
                                 placeholder="Enter your educational details"
+                            ></textarea>
+
+                        </div>
+
+
+                        <div class="form-group full-width">
+
+                            <label>Experience</label>
+
+                            <textarea
+                                v-model="editForm.experience"
+                                rows="4"
+                                placeholder="Experience Summary"
                             ></textarea>
 
                         </div>

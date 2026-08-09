@@ -74,6 +74,7 @@ def get_student_profile():
             "phone": student.phone,
             "skills": student.skills,
             "education": student.education,
+            "experience": student.experience,
             "resume": student.resume,
             "is_active": student.is_active,
             "email": user.email,
@@ -134,6 +135,7 @@ def update_student_profile():
     student.cgpa = cgpa
     student.skills = (data.get("skills") or "").strip()
     student.education = (data.get("education") or "").strip()
+    student.experience = (data.get("experience") or "").strip()
 
     try:
         db.session.commit()
@@ -150,6 +152,7 @@ def update_student_profile():
                 "phone": student.phone,
                 "skills": student.skills,
                 "education": student.education,
+                "experience": student.experience,
                 "resume": student.resume,
                 "is_active": student.is_active
             }

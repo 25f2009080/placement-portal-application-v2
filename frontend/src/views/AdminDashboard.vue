@@ -358,6 +358,32 @@ async function deactivateJob(job) {
 }
 
 
+async function activateJob(job) {
+
+    if (!confirm(
+        `Reactivate "${job.title}"?`
+    )) {
+        return;
+    }
+
+    try {
+
+        await api.put(
+            `/api/admin/job/${job.id}/activate`
+        );
+
+        await loadJobs();
+
+    } catch (err) {
+
+        alert(
+            err.response?.data?.message ||
+            "Failed to reactivate job."
+        );
+    }
+}
+
+
 function getJobStatusClass(status) {
 
     if (status === "Active") {
@@ -745,6 +771,14 @@ onMounted(() => {
                                         @click="deactivateJob(job)"
                                     >
                                         Deactivate
+                                    </button>
+
+                                    <button
+                                        v-if="job.status === 'Inactive'"
+                                        class="action-btn activate"
+                                        @click="activateJob(job)"
+                                    >
+                                        Reactivate
                                     </button>
 
                                 </td>

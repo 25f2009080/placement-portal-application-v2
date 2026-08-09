@@ -457,6 +457,44 @@ def deactivate_job(job_id):
     }), 200
 
 
+@admin_bp.route(
+    "/api/admin/job/<int:job_id>/activate",
+    methods=["PUT"]
+)
+@jwt_required()
+def activate_job(job_id):
+
+    if not admin_required():
+        return jsonify({
+            "success": False,
+            "message": "Admin access required"
+        }), 403
+
+    job = db.session.get(JobPosition, job_id)
+
+    if not job:
+        return jsonify({
+            "success": False,
+            "message": "Job posting not found"
+        }), 404
+
+    if job.status != "Inactive":
+        return jsonify({
+            "success": False,
+            "message": "Only deactivated jobs can be reactivated"
+        }), 400
+
+    job.status = "Active"
+    job.last_updated_by = "admin"
+
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "message": "Job posting reactivated successfully"
+    }), 200
+
+
 
 @admin_bp.route(
     "/api/admin/company/<int:company_id>/revoke",

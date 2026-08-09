@@ -33,6 +33,26 @@ class Application(db.Model):
         default=""
     )
 
+    interview_datetime = db.Column(
+        db.DateTime,
+        nullable=True
+    )
+
+    interview_mode = db.Column(
+        db.String(50),
+        nullable=True
+    )
+
+    interview_location = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
+    interview_notes = db.Column(
+        db.Text,
+        nullable=True
+    )
+
     applied_at = db.Column(
         db.DateTime,
         default=lambda: datetime.now(UTC)

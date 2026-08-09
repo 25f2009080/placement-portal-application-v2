@@ -17,4 +17,5 @@ Improvement over PPA v1 in terms of UI, Performance, and Features
 9. Deactivated user's jwt should not work.
 10. Min cgpa cannot apply
 11. Can company edit profile details like HR number.
-12. Admin can't see full details
+12. Admin can't see full details. (FIXED)
+13. Company description not loading in admin dash.

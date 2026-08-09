@@ -96,5 +96,15 @@ class JobPosition(db.Model):
         lazy=True
     )
 
+    benefits = db.Column(
+        db.Text,
+        nullable=True
+    )
+
+    min_cgpa = db.Column(
+        db.Float,
+        nullable=True
+    )
+
     def __repr__(self):
         return f"<JobPosition {self.title}>"

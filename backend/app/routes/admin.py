@@ -87,6 +87,7 @@ def get_companies():
             "industry": company.industry,
             "location": company.location,
             "website": company.website,
+            "description": company.description,
             "hr_name": company.hr_name,
             "hr_email": company.hr_email,
             "approved": company.approved,

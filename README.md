@@ -16,6 +16,6 @@ Improvement over PPA v1 in terms of UI, Performance, and Features
 8. JWT Expiry
 9. Deactivated user's jwt should not work.
 10. Min cgpa cannot apply
-11. Can company edit profile details like HR number.
+11. Can company edit profile details like HR number. (FIXED)
 12. Admin can't see full details. (FIXED)
-13. Company description not loading in admin dash.
+13. Company description not loading in admin dash. (FIXED)

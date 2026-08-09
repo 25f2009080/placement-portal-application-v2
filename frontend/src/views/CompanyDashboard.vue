@@ -203,6 +203,50 @@ async function viewResume(application) {
     }
 }
 
+function formatUTCDateTime(value) {
+    if (!value) {
+        return "-";
+    }
+
+    // Backend timestamps such as applied_at/updated_at are stored in UTC
+    // without an explicit timezone suffix. Tell JavaScript that they are UTC
+    // before converting them to the user's local timezone (IST on your system).
+    const utcValue =
+        value.endsWith("Z") ? value : `${value}Z`;
+
+    const date = new Date(utcValue);
+
+    if (isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short"
+    });
+}
+
+
+function formatLocalDateTime(value) {
+    if (!value) {
+        return "-";
+    }
+
+    // Interview times come from <input type="datetime-local>, so they are
+    // intentionally treated as local time rather than UTC.
+    const date = new Date(value);
+
+    if (isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short"
+    });
+}
+
+
 function getInterviewForm(application) {
     if (!interviewForm.value[application.id]) {
         interviewForm.value[application.id] = {
@@ -1055,7 +1099,7 @@ onMounted(() => {
 
         <p>
             <strong>Applied At:</strong>
-            {{ application.applied_at }}
+            {{ formatUTCDateTime(application.applied_at) }}
         </p>
 
         <p>
@@ -1138,7 +1182,7 @@ onMounted(() => {
 
         <p>
             <strong>Date & Time:</strong>
-            {{ application.interview_datetime }}
+            {{ formatLocalDateTime(application.interview_datetime) }}
         </p>
 
         <p>

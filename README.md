@@ -20,8 +20,8 @@ Improvement over PPA v1 in terms of UI, Performance, and Features
 12. Admin can't see full details. (FIXED)
 13. Company description not loading in admin dash. (FIXED)
 14. Major based apply eligibility.
-15. Company Reactivate button.
+15. Company Reactivate button. (FIXED)
 16. Company Dashboard beautify, add messages when blacklisted.
-17. Company Dash student application time format
+17. Company Dash student application time format (FIXED)
 18. Resume in application.  (FIXED)
-19. Application Time wrong
+19. Application Time wrong (FIXED)

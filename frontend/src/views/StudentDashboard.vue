@@ -400,18 +400,47 @@ const getStatusClass = (status) => {
 };
 
 
-const formatDateTime = (value) => {
+const formatUTCDateTime = (value) => {
     if (!value) {
         return "-";
     }
 
+    // applied_at and updated_at are backend timestamps stored in UTC
+    // without a timezone suffix. Explicitly mark them as UTC before
+    // converting to the browser's local timezone.
+    const utcValue =
+        value.endsWith("Z") ? value : `${value}Z`;
+
+    const date = new Date(utcValue);
+
+    if (isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short"
+    });
+};
+
+
+const formatLocalDateTime = (value) => {
+    if (!value) {
+        return "-";
+    }
+
+    // Interview datetime is entered using datetime-local and represents
+    // the local time selected by the company.
     const date = new Date(value);
 
     if (isNaN(date.getTime())) {
         return value;
     }
 
-    return date.toLocaleString();
+    return date.toLocaleString("en-IN", {
+        dateStyle: "medium",
+        timeStyle: "short"
+    });
 };
 
 
@@ -1212,7 +1241,7 @@ onMounted(async () => {
                                 <strong>Applied On:</strong>
 
                                 {{
-                                    formatDateTime(
+                                    formatUTCDateTime(
                                         application.applied_at
                                     )
                                 }}
@@ -1225,7 +1254,7 @@ onMounted(async () => {
                                 <strong>Last Updated:</strong>
 
                                 {{
-                                    formatDateTime(
+                                    formatUTCDateTime(
                                         application.updated_at
                                     )
                                 }}
@@ -1322,7 +1351,7 @@ onMounted(async () => {
                                     </strong>
 
                                     {{
-                                        formatDateTime(
+                                        formatLocalDateTime(
                                             application.interview
                                                 .datetime
                                         )

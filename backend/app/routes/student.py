@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import date
 from app import db
-from app.models import User, Student, JobPosition, Application
+from app.models import User, Student, JobPosition, Application, Placement
 import os
 from werkzeug.utils import secure_filename
 
@@ -450,6 +450,7 @@ def get_student_applications():
             continue
 
         company = job.company
+        placement = application.placement
 
         result.append({
             "id": application.id,
@@ -498,13 +499,84 @@ def get_student_applications():
                 "industry": company.industry,
                 "location": company.location,
                 "website": company.website
-            } if company else None
+            } if company else None,
+
+            "placement": {
+                "id": placement.id,
+                "position": placement.position,
+                "salary": placement.salary,
+                "joining_date": (
+                    placement.joining_date.isoformat()
+                    if placement.joining_date else None
+                ),
+                "placed_at": (
+                    placement.placed_at.isoformat()
+                    if placement.placed_at else None
+                ),
+                "offer_letter": placement.offer_letter
+            } if placement else None
         })
 
     return jsonify({
         "success": True,
         "applications": result
     }), 200
+
+
+@student_bp.route(
+    "/api/student/applications/<int:application_id>/offer-letter",
+    methods=["GET"]
+)
+@jwt_required()
+def view_offer_letter(application_id):
+
+    user, student, error = get_current_student()
+
+    if error:
+        return error
+
+    application = db.session.get(
+        Application,
+        application_id
+    )
+
+    if not application:
+        return jsonify({
+            "success": False,
+            "message": "Application not found"
+        }), 404
+
+    # A student can only access their own application.
+    if application.student_id != student.id:
+        return jsonify({
+            "success": False,
+            "message": "Application not found"
+        }), 404
+
+    placement = application.placement
+
+    if not placement or not placement.offer_letter:
+        return jsonify({
+            "success": False,
+            "message": "Offer letter not found"
+        }), 404
+
+    file_path = os.path.join(
+        current_app.config["UPLOAD_FOLDER"],
+        placement.offer_letter
+    )
+
+    if not os.path.exists(file_path):
+        return jsonify({
+            "success": False,
+            "message": "Offer letter file not found"
+        }), 404
+
+    return send_from_directory(
+        current_app.config["UPLOAD_FOLDER"],
+        placement.offer_letter,
+        as_attachment=False
+    )
 
 
 @student_bp.route(

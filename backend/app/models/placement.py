@@ -55,6 +55,11 @@ class Placement(db.Model):
         default=lambda: datetime.now(UTC)
     )
 
+    offer_letter = db.Column(
+        db.String(255),
+        nullable=True
+    )
+
 
     application = db.relationship(
         "Application",

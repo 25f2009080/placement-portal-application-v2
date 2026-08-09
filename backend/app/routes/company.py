@@ -1,10 +1,12 @@
 from datetime import datetime
+import os
 
 from flask import Blueprint, request, jsonify, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import current_app
+from werkzeug.utils import secure_filename
 from app import db
-from app.models import User, Company, JobPosition, Application
+from app.models import User, Company, JobPosition, Application, Placement
 
 
 company_bp = Blueprint("company", __name__)
@@ -920,15 +922,26 @@ def update_final_application_status(application_id):
             )
         }), 400
 
-    data = request.get_json()
+    # Selected requests arrive as multipart/form-data because
+    # they contain the offer-letter PDF.
+    if request.content_type and request.content_type.startswith(
+        "multipart/form-data"
+    ):
+        new_status = request.form.get("status")
+        remarks = (request.form.get("remarks") or "").strip()
+        offer_letter = request.files.get("offer_letter")
+    else:
+        data = request.get_json(silent=True)
 
-    if not data or "status" not in data:
-        return jsonify({
-            "success": False,
-            "message": "Status is required"
-        }), 400
+        if not data or "status" not in data:
+            return jsonify({
+                "success": False,
+                "message": "Status is required"
+            }), 400
 
-    new_status = data["status"]
+        new_status = data["status"]
+        remarks = (data.get("remarks") or "").strip()
+        offer_letter = None
 
     if new_status not in ["Selected", "Rejected"]:
         return jsonify({
@@ -937,8 +950,6 @@ def update_final_application_status(application_id):
                 "Status must be Selected or Rejected"
             )
         }), 400
-
-    remarks = data.get("remarks", "").strip()
 
     if new_status == "Rejected" and not remarks:
         return jsonify({
@@ -949,32 +960,208 @@ def update_final_application_status(application_id):
             )
         }), 400
 
-    application.status = new_status
+    # ---------------------------------------------------------
+    # REJECTION
+    # ---------------------------------------------------------
 
-    if remarks:
-        application.remarks = remarks
+    if new_status == "Rejected":
+
+        application.status = "Rejected"
+
+        if remarks:
+            application.remarks = remarks
+
+        try:
+            db.session.commit()
+
+            return jsonify({
+                "success": True,
+                "message": "Applicant marked as rejected",
+                "application": {
+                    "id": application.id,
+                    "status": application.status,
+                    "remarks": application.remarks
+                }
+            }), 200
+
+        except Exception:
+            db.session.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Failed to update application status"
+                )
+            }), 500
+
+    # ---------------------------------------------------------
+    # SELECTION + OFFER LETTER
+    # ---------------------------------------------------------
+
+    if offer_letter is None or not offer_letter.filename:
+        return jsonify({
+            "success": False,
+            "message": (
+                "Offer letter PDF is required when "
+                "selecting an applicant"
+            )
+        }), 400
+
+    original_filename = offer_letter.filename
+
+    if "." not in original_filename:
+        return jsonify({
+            "success": False,
+            "message": "Invalid offer letter file"
+        }), 400
+
+    extension = original_filename.rsplit(
+        ".",
+        1
+    )[1].lower()
+
+    if extension != "pdf":
+        return jsonify({
+            "success": False,
+            "message": "Only PDF offer letters are allowed"
+        }), 400
+
+    filename = secure_filename(original_filename)
+
+    if not filename:
+        return jsonify({
+            "success": False,
+            "message": "Invalid offer letter filename"
+        }), 400
+
+    job = application.job
+    student = application.student
+
+    if not student:
+        return jsonify({
+            "success": False,
+            "message": (
+                "Student associated with application not found"
+            )
+        }), 404
+
+    existing_placement = Placement.query.filter_by(
+        application_id=application.id
+    ).first()
+
+    if existing_placement:
+        return jsonify({
+            "success": False,
+            "message": (
+                "Placement already exists for this application"
+            )
+        }), 409
+
+    if job.salary is None:
+        return jsonify({
+            "success": False,
+            "message": (
+                "Set a salary for this placement drive "
+                "before selecting the applicant"
+            )
+        }), 400
+
+    joining_date = None
+
+    # Keep joining_date in the Placement model for future
+    # placement reports. It is optional and is not required
+    # for selecting the applicant.
+    if request.form.get("joining_date"):
+        try:
+            joining_date = datetime.strptime(
+                request.form.get("joining_date"),
+                "%Y-%m-%d"
+            ).date()
+
+        except (ValueError, TypeError):
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Joining date must be in YYYY-MM-DD format"
+                )
+            }), 400
+
+    upload_folder = current_app.config["UPLOAD_FOLDER"]
+    os.makedirs(upload_folder, exist_ok=True)
+
+    base_name, file_extension = os.path.splitext(filename)
+
+    filename = (
+        f"offer_{application.id}_{base_name}"
+        f"{file_extension}"
+    )
+
+    file_path = os.path.join(
+        upload_folder,
+        filename
+    )
 
     try:
+        offer_letter.save(file_path)
+
+        placement = Placement(
+            application_id=application.id,
+            student_id=student.id,
+            company_id=company.id,
+            job_id=job.id,
+            position=job.title,
+            salary=job.salary,
+            joining_date=joining_date,
+            offer_letter=filename
+        )
+
+        application.status = "Selected"
+        application.remarks = remarks
+
+        db.session.add(placement)
         db.session.commit()
 
         return jsonify({
             "success": True,
             "message": (
-                f"Applicant marked as {new_status.lower()}"
+                "Applicant selected and offer letter uploaded successfully"
             ),
             "application": {
                 "id": application.id,
                 "status": application.status,
                 "remarks": application.remarks
+            },
+            "placement": {
+                "id": placement.id,
+                "position": placement.position,
+                "salary": placement.salary,
+                "joining_date": (
+                    placement.joining_date.isoformat()
+                    if placement.joining_date
+                    else None
+                ),
+                "placed_at": (
+                    placement.placed_at.isoformat()
+                    if placement.placed_at
+                    else None
+                ),
+                "offer_letter": placement.offer_letter
             }
         }), 200
 
     except Exception:
         db.session.rollback()
 
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
+
         return jsonify({
             "success": False,
             "message": (
-                "Failed to update application status"
+                "Failed to create placement or upload offer letter"
             )
         }), 500
+

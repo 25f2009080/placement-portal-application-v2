@@ -16,6 +16,9 @@ const applicationsLoading = ref(false);
 const feedback = ref({});
 const interviewForm = ref({});
 
+const offerLetter = ref({});
+const offerLetterInputKey = ref({});
+
 const loading = ref(true);
 const jobsLoading = ref(true);
 
@@ -127,6 +130,8 @@ function closeApplicants() {
     applications.value = [];
     feedback.value = {};
     interviewForm.value = {};
+    offerLetter.value = {};
+    offerLetterInputKey.value = {};
 }
 
 
@@ -250,6 +255,42 @@ async function scheduleInterview(application) {
 }
 
 
+function selectOfferLetter(application, event) {
+    const file = event.target.files[0];
+
+    if (!file) {
+        offerLetter.value[application.id] = null;
+        return;
+    }
+
+    const extension = file.name
+        .split(".")
+        .pop()
+        .toLowerCase();
+
+    if (extension !== "pdf") {
+        error.value =
+            "Offer letter must be a PDF file.";
+
+        event.target.value = "";
+        offerLetter.value[application.id] = null;
+        return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+        error.value =
+            "Offer letter must be smaller than 5 MB.";
+
+        event.target.value = "";
+        offerLetter.value[application.id] = null;
+        return;
+    }
+
+    error.value = "";
+    offerLetter.value[application.id] = file;
+}
+
+
 async function updateFinalStatus(
     application,
     status
@@ -269,16 +310,47 @@ async function updateFinalStatus(
         return;
     }
 
+    if (
+        status === "Selected" &&
+        !offerLetter.value[application.id]
+    ) {
+        error.value =
+            "Please upload the offer letter PDF before selecting the applicant.";
+        return;
+    }
+
     try {
-        const response = await api.put(
-            `/api/company/applications/${application.id}/final-status`,
-            {
-                status: status,
-                remarks: remarks
-            }
-        );
+        let response;
+
+        if (status === "Selected") {
+            const formData = new FormData();
+
+            formData.append("status", status);
+            formData.append("remarks", remarks);
+            formData.append(
+                "offer_letter",
+                offerLetter.value[application.id]
+            );
+
+            response = await api.put(
+                `/api/company/applications/${application.id}/final-status`,
+                formData
+            );
+        } else {
+            response = await api.put(
+                `/api/company/applications/${application.id}/final-status`,
+                {
+                    status: status,
+                    remarks: remarks
+                }
+            );
+        }
 
         success.value = response.data.message;
+
+        offerLetter.value[application.id] = null;
+        offerLetterInputKey.value[application.id] =
+            (offerLetterInputKey.value[application.id] || 0) + 1;
 
         await viewApplicants(selectedJob.value);
 
@@ -1092,10 +1164,54 @@ onMounted(() => {
 
         <h4>Final Decision</h4>
 
-        <textarea
-            v-model="feedback[application.id]"
-            placeholder="Enter feedback"
-        ></textarea>
+        <div>
+            <label>
+                Company Feedback
+            </label>
+
+            <br>
+
+            <textarea
+                v-model="feedback[application.id]"
+                placeholder="Enter feedback"
+            ></textarea>
+        </div>
+
+        <br>
+
+        <div>
+            <label>
+                Offer Letter (PDF)
+            </label>
+
+            <br>
+
+            <input
+                :key="
+                    offerLetterInputKey[application.id] || 0
+                "
+                type="file"
+                accept=".pdf,application/pdf"
+                @change="
+                    selectOfferLetter(
+                        application,
+                        $event
+                    )
+                "
+            >
+
+            <p
+                v-if="offerLetter[application.id]"
+            >
+                Selected:
+                {{ offerLetter[application.id].name }}
+            </p>
+
+            <small>
+                PDF only, maximum 5 MB.
+                Required when selecting the applicant.
+            </small>
+        </div>
 
         <br>
 

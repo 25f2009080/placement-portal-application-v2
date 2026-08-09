@@ -192,47 +192,6 @@ const selectResume = (event) => {
 };
 
 
-const viewResume = async () => {
-    if (!student.value || !student.value.resume) {
-        errorMessage.value = "No resume has been uploaded.";
-        return;
-    }
-
-    errorMessage.value = "";
-
-    try {
-        const response = await api.get(
-            "/api/student/profile/resume",
-            {
-                responseType: "blob"
-            }
-        );
-
-        const contentType =
-            response.headers["content-type"] ||
-            "application/pdf";
-
-        const blob = new Blob(
-            [response.data],
-            { type: contentType }
-        );
-
-        const fileUrl = URL.createObjectURL(blob);
-
-        window.open(fileUrl, "_blank");
-
-        setTimeout(() => {
-            URL.revokeObjectURL(fileUrl);
-        }, 60000);
-
-    } catch (error) {
-        errorMessage.value =
-            error.response?.data?.message ||
-            "Failed to open resume.";
-    }
-};
-
-
 const uploadResume = async () => {
     if (!resumeFile.value) {
         errorMessage.value =
@@ -282,6 +241,64 @@ const uploadResume = async () => {
 
     } finally {
         resumeUploading.value = false;
+    }
+};
+
+
+const viewResume = async () => {
+    errorMessage.value = "";
+
+    try {
+        const response = await api.get(
+            "/api/student/profile/resume",
+            {
+                responseType: "blob"
+            }
+        );
+
+        const fileURL = URL.createObjectURL(
+            response.data
+        );
+
+        window.open(fileURL, "_blank");
+
+        setTimeout(() => {
+            URL.revokeObjectURL(fileURL);
+        }, 60000);
+
+    } catch (error) {
+        errorMessage.value =
+            error.response?.data?.message ||
+            "Failed to open resume.";
+    }
+};
+
+
+const viewOfferLetter = async (application) => {
+    errorMessage.value = "";
+
+    try {
+        const response = await api.get(
+            `/api/student/applications/${application.id}/offer-letter`,
+            {
+                responseType: "blob"
+            }
+        );
+
+        const fileURL = URL.createObjectURL(
+            response.data
+        );
+
+        window.open(fileURL, "_blank");
+
+        setTimeout(() => {
+            URL.revokeObjectURL(fileURL);
+        }, 60000);
+
+    } catch (error) {
+        errorMessage.value =
+            error.response?.data?.message ||
+            "Failed to open offer letter.";
     }
 };
 
@@ -1393,6 +1410,30 @@ onMounted(async () => {
                                 placement opportunity.
                             </p>
 
+                            <div
+                                v-if="
+                                    application.placement &&
+                                    application.placement.offer_letter
+                                "
+                                class="offer-letter-section"
+                            >
+                                <strong>Offer Letter</strong>
+
+                                <p>
+                                    Your offer letter is available.
+                                </p>
+
+                                <button
+                                    type="button"
+                                    class="view-offer-letter-button"
+                                    @click="
+                                        viewOfferLetter(application)
+                                    "
+                                >
+                                    View Offer Letter
+                                </button>
+                            </div>
+
                         </div>
 
 
@@ -1977,21 +2018,15 @@ onMounted(async () => {
 .view-resume-button {
     display: inline-block;
     padding: 8px 14px;
-    border: none;
     background: #0d6efd;
     color: white;
+    text-decoration: none;
     border-radius: 6px;
     font-size: 13px;
-    cursor: pointer;
 }
 
 .view-resume-button:hover {
     opacity: 0.9;
-}
-
-.view-resume-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
 }
 
 .resume-upload {
@@ -2036,6 +2071,31 @@ onMounted(async () => {
 .resume-upload small {
     color: #666;
 }
+
+.offer-letter-section {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #badbcc;
+}
+
+.offer-letter-section p {
+    margin: 6px 0 10px;
+}
+
+.view-offer-letter-button {
+    border: none;
+    border-radius: 6px;
+    padding: 9px 16px;
+    background: #0d6efd;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.view-offer-letter-button:hover {
+    opacity: 0.9;
+}
+
 
 @media (max-width: 900px) {
 

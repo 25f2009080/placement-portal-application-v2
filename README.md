@@ -23,4 +23,5 @@ Improvement over PPA v1 in terms of UI, Performance, and Features
 15. Company Reactivate button.
 16. Company Dashboard beautify, add messages when blacklisted.
 17. Company Dash student application time format
-18. Resume in application.
+18. Resume in application.  (FIXED)
+19. Application Time wrong

@@ -37,10 +37,12 @@ def create_app():
     from app.routes.auth import auth_bp
     from app.routes.admin import admin_bp
     from app.routes.company import company_bp
+    from app.routes.student import student_bp
 
     app.register_blueprint(test_bp)
     app.register_blueprint(auth_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(company_bp)
+    app.register_blueprint(student_bp)
 
     return app

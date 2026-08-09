@@ -22,6 +22,10 @@ const companySearch = ref("");
 const skillsSearch = ref("");
 const applyingJobId = ref(null);
 
+const resumeFile = ref(null);
+const resumeUploading = ref(false);
+const resumeInput = ref(null);
+
 const editForm = ref({
     name: "",
     department: "",
@@ -146,6 +150,138 @@ const applyForJob = async (job) => {
             "Failed to submit application.";
     } finally {
         applyingJobId.value = null;
+    }
+};
+
+
+const selectResume = (event) => {
+    const file = event.target.files[0];
+
+    if (!file) {
+        resumeFile.value = null;
+        return;
+    }
+
+    const allowedExtensions = ["pdf", "doc", "docx"];
+
+    const extension = file.name
+        .split(".")
+        .pop()
+        .toLowerCase();
+
+    if (!allowedExtensions.includes(extension)) {
+        errorMessage.value =
+            "Only PDF, DOC and DOCX files are allowed.";
+
+        event.target.value = "";
+        resumeFile.value = null;
+        return;
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+        errorMessage.value =
+            "Resume must be smaller than 5 MB.";
+
+        event.target.value = "";
+        resumeFile.value = null;
+        return;
+    }
+
+    errorMessage.value = "";
+    resumeFile.value = file;
+};
+
+
+const viewResume = async () => {
+    if (!student.value || !student.value.resume) {
+        errorMessage.value = "No resume has been uploaded.";
+        return;
+    }
+
+    errorMessage.value = "";
+
+    try {
+        const response = await api.get(
+            "/api/student/profile/resume",
+            {
+                responseType: "blob"
+            }
+        );
+
+        const contentType =
+            response.headers["content-type"] ||
+            "application/pdf";
+
+        const blob = new Blob(
+            [response.data],
+            { type: contentType }
+        );
+
+        const fileUrl = URL.createObjectURL(blob);
+
+        window.open(fileUrl, "_blank");
+
+        setTimeout(() => {
+            URL.revokeObjectURL(fileUrl);
+        }, 60000);
+
+    } catch (error) {
+        errorMessage.value =
+            error.response?.data?.message ||
+            "Failed to open resume.";
+    }
+};
+
+
+const uploadResume = async () => {
+    if (!resumeFile.value) {
+        errorMessage.value =
+            "Please select a resume first.";
+        return;
+    }
+
+    resumeUploading.value = true;
+    errorMessage.value = "";
+    successMessage.value = "";
+
+    const formData = new FormData();
+
+    formData.append(
+        "resume",
+        resumeFile.value
+    );
+
+    try {
+        const response = await api.post(
+            "/api/student/profile/resume",
+            formData
+        );
+
+        successMessage.value =
+            response.data.message ||
+            "Resume uploaded successfully.";
+
+        resumeFile.value = null;
+
+        if (resumeInput.value) {
+            resumeInput.value.value = "";
+        }
+
+        await loadProfile();
+
+    } catch (error) {
+
+        if (error.response?.status === 413) {
+            errorMessage.value =
+                "Resume is too large. Maximum size is 5 MB.";
+        } else {
+            errorMessage.value =
+                error.response?.data?.message ||
+                "Failed to upload resume.";
+        }
+
+    } finally {
+        resumeUploading.value = false;
     }
 };
 
@@ -391,23 +527,84 @@ onMounted(async () => {
 
                     <div class="profile-item full-width">
 
-                        <label>Resume</label>
+<label>Resume</label>
 
-                        <div
-                            v-if="student.resume"
-                            class="resume-status uploaded"
-                        >
-                            <span>Resume uploaded</span>
-                        </div>
+<div
+    v-if="student.resume"
+    class="resume-status uploaded"
+>
+    <div class="resume-current">
 
-                        <div
-                            v-else
-                            class="resume-status not-uploaded"
-                        >
-                            <span>No resume uploaded</span>
-                        </div>
+        <span>
+            Resume uploaded
+        </span>
 
-                    </div>
+        <button
+            type="button"
+            class="view-resume-button"
+            @click="viewResume"
+        >
+            View Resume
+        </button>
+
+    </div>
+</div>
+
+<div
+    v-else
+    class="resume-status not-uploaded"
+>
+    <span>
+        No resume uploaded
+    </span>
+</div>
+
+
+<div class="resume-upload">
+
+    <input
+        ref="resumeInput"
+        type="file"
+        accept=".pdf,.doc,.docx"
+        @change="selectResume"
+    />
+
+
+    <p
+        v-if="resumeFile"
+        class="selected-file"
+    >
+        Selected:
+        {{ resumeFile.name }}
+    </p>
+
+
+    <button
+        type="button"
+        class="resume-upload-button"
+        @click="uploadResume"
+        :disabled="
+            !resumeFile ||
+            resumeUploading
+        "
+    >
+        {{
+            resumeUploading
+                ? "Uploading..."
+                : student.resume
+                    ? "Update Resume"
+                    : "Upload Resume"
+        }}
+    </button>
+
+
+    <small>
+        PDF, DOC or DOCX — maximum 5 MB
+    </small>
+
+</div>
+
+</div>
 
                 </div>
 
@@ -1767,6 +1964,77 @@ onMounted(async () => {
     padding: 12px;
     border-radius: 6px;
     margin-bottom: 20px;
+}
+
+.resume-current {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 15px;
+    flex-wrap: wrap;
+}
+
+.view-resume-button {
+    display: inline-block;
+    padding: 8px 14px;
+    border: none;
+    background: #0d6efd;
+    color: white;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.view-resume-button:hover {
+    opacity: 0.9;
+}
+
+.view-resume-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.resume-upload {
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #ddd;
+}
+
+.resume-upload input[type="file"] {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+.selected-file {
+    margin: 8px 0;
+    color: #555;
+    font-size: 14px;
+    word-break: break-word;
+}
+
+.resume-upload-button {
+    border: none;
+    border-radius: 6px;
+    padding: 9px 16px;
+    background: #198754;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    margin-right: 10px;
+}
+
+.resume-upload-button:hover {
+    opacity: 0.9;
+}
+
+.resume-upload-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.resume-upload small {
+    color: #666;
 }
 
 @media (max-width: 900px) {

@@ -1,8 +1,10 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import date
 from app import db
 from app.models import User, Student, JobPosition, Application
+import os
+from werkzeug.utils import secure_filename
 
 
 student_bp = Blueprint("student", __name__)
@@ -503,3 +505,155 @@ def get_student_applications():
         "success": True,
         "applications": result
     }), 200
+
+
+@student_bp.route(
+    "/api/student/profile/resume",
+    methods=["POST"]
+)
+@jwt_required()
+def upload_resume():
+
+    user, student, error = get_current_student()
+
+    if error:
+        return error
+
+    if "resume" not in request.files:
+        return jsonify({
+            "success": False,
+            "message": "No resume file provided"
+        }), 400
+
+    file = request.files["resume"]
+
+    if not file or file.filename == "":
+        return jsonify({
+            "success": False,
+            "message": "No resume file selected"
+        }), 400
+
+    allowed_extensions = {
+        "pdf",
+        "doc",
+        "docx"
+    }
+
+    original_filename = file.filename
+
+    if "." not in original_filename:
+        return jsonify({
+            "success": False,
+            "message": "Invalid file type"
+        }), 400
+
+    extension = original_filename.rsplit(".", 1)[1].lower()
+
+    if extension not in allowed_extensions:
+        return jsonify({
+            "success": False,
+            "message": "Only PDF, DOC and DOCX files are allowed"
+        }), 400
+
+    filename = secure_filename(original_filename)
+
+    if not filename:
+        return jsonify({
+            "success": False,
+            "message": "Invalid filename"
+        }), 400
+
+    upload_folder = current_app.config["UPLOAD_FOLDER"]
+
+    os.makedirs(upload_folder, exist_ok=True)
+
+    if student.resume:
+
+        old_resume_path = os.path.join(
+            upload_folder,
+            student.resume
+        )
+
+        if os.path.exists(old_resume_path):
+            try:
+                os.remove(old_resume_path)
+            except OSError:
+                pass
+
+    base_name, file_extension = os.path.splitext(filename)
+
+    filename = (
+        f"student_{student.id}_{base_name}"
+        f"{file_extension}"
+    )
+
+    file_path = os.path.join(
+        upload_folder,
+        filename
+    )
+
+    try:
+
+        file.save(file_path)
+
+        student.resume = filename
+
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Resume uploaded successfully",
+            "resume": filename
+        }), 200
+
+    except Exception:
+
+        db.session.rollback()
+
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
+
+        return jsonify({
+            "success": False,
+            "message": "Failed to upload resume"
+        }), 500
+
+
+
+@student_bp.route(
+    "/api/student/profile/resume",
+    methods=["GET"]
+)
+@jwt_required()
+def view_student_resume():
+
+    user, student, error = get_current_student()
+
+    if error:
+        return error
+
+    if not student.resume:
+        return jsonify({
+            "success": False,
+            "message": "Resume not found"
+        }), 404
+
+    file_path = os.path.join(
+        current_app.config["UPLOAD_FOLDER"],
+        student.resume
+    )
+
+    if not os.path.exists(file_path):
+        return jsonify({
+            "success": False,
+            "message": "Resume file not found"
+        }), 404
+
+    return send_from_directory(
+        current_app.config["UPLOAD_FOLDER"],
+        student.resume,
+        as_attachment=False
+    )

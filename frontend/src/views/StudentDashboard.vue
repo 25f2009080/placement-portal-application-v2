@@ -5,9 +5,11 @@ import api from "../services/api";
 
 const student = ref(null);
 const jobs = ref([]);
+const applications = ref([]);
 
 const loading = ref(true);
 const jobsLoading = ref(false);
+const applicationsLoading = ref(false);
 const saving = ref(false);
 
 const errorMessage = ref("");
@@ -93,6 +95,28 @@ const loadJobs = async () => {
     }
 };
 
+
+const loadApplications = async () => {
+    applicationsLoading.value = true;
+    errorMessage.value = "";
+
+    try {
+        const response = await api.get(
+            "/api/student/applications"
+        );
+
+        applications.value = response.data.applications;
+
+    } catch (error) {
+        errorMessage.value =
+            error.response?.data?.message ||
+            "Failed to load applications.";
+    } finally {
+        applicationsLoading.value = false;
+    }
+};
+
+
 const applyForJob = async (job) => {
     if (!job.can_apply) {
         return;
@@ -112,6 +136,7 @@ const applyForJob = async (job) => {
             "Application submitted successfully.";
 
         await loadJobs();
+        await loadApplications();
 
     } catch (error) {
         errorMessage.value =
@@ -121,6 +146,7 @@ const applyForJob = async (job) => {
         applyingJobId.value = null;
     }
 };
+
 
 const clearSearch = () => {
     search.value = "";
@@ -196,9 +222,45 @@ const saveProfile = async () => {
 };
 
 
+const getStatusClass = (status) => {
+    switch (status) {
+        case "Applied":
+            return "status-applied";
+
+        case "Shortlisted":
+            return "status-shortlisted";
+
+        case "Selected":
+            return "status-selected";
+
+        case "Rejected":
+            return "status-rejected";
+
+        default:
+            return "status-default";
+    }
+};
+
+
+const formatDateTime = (value) => {
+    if (!value) {
+        return "-";
+    }
+
+    const date = new Date(value);
+
+    if (isNaN(date.getTime())) {
+        return value;
+    }
+
+    return date.toLocaleString();
+};
+
+
 onMounted(async () => {
     await loadProfile();
     await loadJobs();
+    await loadApplications();
 });
 </script>
 
@@ -274,56 +336,73 @@ onMounted(async () => {
                         <p>{{ student.student_id || "-" }}</p>
                     </div>
 
+
                     <div class="profile-item">
                         <label>Name</label>
                         <p>{{ student.name || "-" }}</p>
                     </div>
+
 
                     <div class="profile-item">
                         <label>Department</label>
                         <p>{{ student.department || "-" }}</p>
                     </div>
 
+
                     <div class="profile-item">
                         <label>Email</label>
                         <p>{{ student.email || "-" }}</p>
                     </div>
+
 
                     <div class="profile-item">
                         <label>Phone</label>
                         <p>{{ student.phone || "-" }}</p>
                     </div>
 
+
                     <div class="profile-item">
                         <label>CGPA</label>
                         <p>{{ student.cgpa ?? "-" }}</p>
                     </div>
+
 
                     <div class="profile-item full-width">
                         <label>Skills</label>
                         <p>{{ student.skills || "-" }}</p>
                     </div>
 
+
                     <div class="profile-item full-width">
                         <label>Education</label>
                         <p>{{ student.education || "-" }}</p>
                     </div>
 
+
                     <div class="profile-item full-width">
+
                         <label>Resume</label>
 
-                        <p v-if="student.resume">
-                            Resume uploaded
-                        </p>
+                        <div
+                            v-if="student.resume"
+                            class="resume-status uploaded"
+                        >
+                            <span>Resume uploaded</span>
+                        </div>
 
-                        <p v-else>
-                            No resume uploaded
-                        </p>
+                        <div
+                            v-else
+                            class="resume-status not-uploaded"
+                        >
+                            <span>No resume uploaded</span>
+                        </div>
+
                     </div>
 
                 </div>
 
             </div>
+
 
 
             <div
@@ -477,7 +556,6 @@ onMounted(async () => {
             </div>
 
 
-
             <div class="jobs-section">
 
                 <div class="section-header">
@@ -540,6 +618,7 @@ onMounted(async () => {
                             Search
                         </button>
 
+
                         <button
                             class="reset-button"
                             @click="clearSearch"
@@ -596,6 +675,7 @@ onMounted(async () => {
 
                             </div>
 
+
                             <span class="status-badge">
                                 {{ job.status }}
                             </span>
@@ -610,6 +690,7 @@ onMounted(async () => {
                                 {{ job.location || "-" }}
                             </div>
 
+
                             <div>
                                 <strong>Salary:</strong>
 
@@ -620,22 +701,27 @@ onMounted(async () => {
                                 <span v-else>
                                     Not specified
                                 </span>
+
                             </div>
+
 
                             <div>
                                 <strong>Experience:</strong>
                                 {{ job.experience || "-" }}
                             </div>
 
+
                             <div>
                                 <strong>Minimum CGPA:</strong>
                                 {{ job.min_cgpa ?? "No minimum" }}
                             </div>
 
+
                             <div>
                                 <strong>Deadline:</strong>
                                 {{ job.deadline }}
                             </div>
+
 
                             <div>
                                 <strong>Applications:</strong>
@@ -696,10 +782,12 @@ onMounted(async () => {
                                 {{ job.company.name }}
                             </p>
 
+
                             <p v-if="job.company.industry">
                                 Industry:
                                 {{ job.company.industry }}
                             </p>
+
 
                             <p v-if="job.company.location">
                                 Location:
@@ -740,9 +828,11 @@ onMounted(async () => {
                                 v-else
                                 class="apply-section"
                             >
+
                                 <div class="state eligible">
                                     You are Eligible to apply
                                 </div>
+
 
                                 <button
                                     class="apply-button"
@@ -755,8 +845,378 @@ onMounted(async () => {
                                             : "Apply now"
                                     }}
                                 </button>
+
                             </div>
 
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <div class="applications-section">
+
+                <div class="section-header">
+
+                    <h2>My Applications</h2>
+
+                </div>
+
+
+                <div
+                    v-if="applicationsLoading"
+                    class="message"
+                >
+                    Loading applications...
+                </div>
+
+
+                <div
+                    v-else-if="applications.length === 0"
+                    class="empty-message"
+                >
+                    You have not applied for any jobs yet.
+                </div>
+
+
+                <div
+                    v-else
+                    class="applications-list"
+                >
+
+                    <div
+                        v-for="application in applications"
+                        :key="application.id"
+                        class="application-card"
+                    >
+
+                        <div class="application-header">
+
+                            <div>
+
+                                <h3>
+                                    {{ application.job.title }}
+                                </h3>
+
+
+                                <p class="company-name">
+                                    {{
+                                        application.company
+                                            ? application.company.name
+                                            : "Company unavailable"
+                                    }}
+                                </p>
+
+                            </div>
+
+
+                            <span
+                                class="application-status"
+                                :class="
+                                    getStatusClass(
+                                        application.status
+                                    )
+                                "
+                            >
+                                {{ application.status }}
+                            </span>
+
+                        </div>
+
+
+                        <div class="application-details">
+
+                            <div>
+
+                                <strong>Location:</strong>
+
+                                {{
+                                    application.job.location || "-"
+                                }}
+
+                            </div>
+
+
+                            <div>
+
+                                <strong>Salary:</strong>
+
+                                <span
+                                    v-if="
+                                        application.job.salary !== null
+                                    "
+                                >
+                                    ₹{{ application.job.salary }}
+                                </span>
+
+                                <span v-else>
+                                    Not specified
+                                </span>
+
+                            </div>
+
+
+                            <div>
+
+                                <strong>Experience:</strong>
+
+                                {{
+                                    application.job.experience || "-"
+                                }}
+
+                            </div>
+
+
+                            <div>
+
+                                <strong>Applied On:</strong>
+
+                                {{
+                                    formatDateTime(
+                                        application.applied_at
+                                    )
+                                }}
+
+                            </div>
+
+
+                            <div>
+
+                                <strong>Last Updated:</strong>
+
+                                {{
+                                    formatDateTime(
+                                        application.updated_at
+                                    )
+                                }}
+
+                            </div>
+
+
+                            <div>
+
+                                <strong>Job Deadline:</strong>
+
+                                {{
+                                    application.job.deadline || "-"
+                                }}
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            v-if="application.company"
+                            class="application-info"
+                        >
+
+                            <h4>Company Information</h4>
+
+
+                            <p>
+                                <strong>Name:</strong>
+                                {{ application.company.name }}
+                            </p>
+
+
+                            <p
+                                v-if="application.company.industry"
+                            >
+                                <strong>Industry:</strong>
+                                {{ application.company.industry }}
+                            </p>
+
+
+                            <p
+                                v-if="application.company.location"
+                            >
+                                <strong>Location:</strong>
+                                {{ application.company.location }}
+                            </p>
+
+
+                            <p
+                                v-if="application.company.website"
+                            >
+                                <strong>Website:</strong>
+
+                                {{ application.company.website }}
+                            </p>
+
+                        </div>
+
+
+                        <div
+                            v-if="application.remarks"
+                            class="application-info feedback"
+                        >
+
+                            <h4>Company Feedback</h4>
+
+                            <p>
+                                {{ application.remarks }}
+                            </p>
+
+                        </div>
+
+
+
+                        <div
+                            v-if="
+                                application.interview &&
+                                application.interview.datetime
+                            "
+                            class="interview-section"
+                        >
+
+                            <h4>Interview Schedule</h4>
+
+
+                            <div class="interview-details">
+
+                                <div>
+
+                                    <strong>
+                                        Date & Time:
+                                    </strong>
+
+                                    {{
+                                        formatDateTime(
+                                            application.interview
+                                                .datetime
+                                        )
+                                    }}
+
+                                </div>
+
+
+                                <div
+                                    v-if="
+                                        application.interview.mode
+                                    "
+                                >
+
+                                    <strong>Mode:</strong>
+
+                                    {{
+                                        application.interview.mode
+                                    }}
+
+                                </div>
+
+
+                                <div
+                                    v-if="
+                                        application.interview.location
+                                    "
+                                >
+
+                                    <strong>
+                                        Location / Link:
+                                    </strong>
+
+                                    {{
+                                        application.interview.location
+                                    }}
+
+                                </div>
+
+
+                                <div
+                                    v-if="
+                                        application.interview.notes
+                                    "
+                                >
+
+                                    <strong>Notes:</strong>
+
+                                    {{
+                                        application.interview.notes
+                                    }}
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            v-else-if="
+                                application.status ===
+                                'Shortlisted'
+                            "
+                            class="waiting-message"
+                        >
+                            Interview has not been scheduled yet.
+                        </div>
+
+
+                        <div
+                            v-if="
+                                application.status ===
+                                'Selected'
+                            "
+                            class="result-message selected-result"
+                        >
+
+                            <strong>
+                                🎉 Congratulations!
+                            </strong>
+
+                            <p>
+                                You have been selected for this
+                                placement opportunity.
+                            </p>
+
+                        </div>
+
+
+                        <div
+                            v-if="
+                                application.status ===
+                                'Rejected'
+                            "
+                            class="result-message rejected-result"
+                        >
+
+                            <strong>
+                                Application Rejected
+                            </strong>
+
+                            <p>
+                                Your application was not selected
+                                for this opportunity.
+                            </p>
+
+                        </div>
+
+
+                        <div
+                            v-if="
+                                application.status ===
+                                'Applied'
+                            "
+                            class="waiting-message"
+                        >
+                            Your application is currently under
+                            review by the company.
+                        </div>
+
+
+                        <div
+                            v-if="
+                                application.status ===
+                                'Shortlisted'
+                            "
+                            class="waiting-message shortlisted-message"
+                        >
+                            You have been shortlisted. Please check
+                            the interview details above.
                         </div>
 
                     </div>
@@ -796,7 +1256,8 @@ onMounted(async () => {
 }
 
 .profile-section,
-.jobs-section {
+.jobs-section,
+.applications-section {
     background: #ffffff;
     border: 1px solid #ddd;
     border-radius: 10px;
@@ -842,6 +1303,23 @@ onMounted(async () => {
     color: #444;
     white-space: pre-wrap;
 }
+
+.resume-status {
+    padding: 10px;
+    border-radius: 6px;
+    margin-top: 5px;
+}
+
+.resume-status.uploaded {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.resume-status.not-uploaded {
+    background: #fff3cd;
+    color: #664d03;
+}
+
 
 .edit-button,
 .save-button,
@@ -1035,6 +1513,7 @@ onMounted(async () => {
 }
 
 
+
 .application-state {
     margin-top: 20px;
 }
@@ -1064,6 +1543,175 @@ onMounted(async () => {
 .eligible {
     background: #d1e7dd;
     color: #0f5132;
+}
+
+.apply-section {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.apply-button {
+    width: 100%;
+    padding: 11px;
+    border: none;
+    border-radius: 6px;
+    background: #0d6efd;
+    color: white;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.apply-button:hover {
+    opacity: 0.9;
+}
+
+.apply-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+
+.applications-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.application-card {
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    background: #fff;
+}
+
+.application-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.application-header h3 {
+    margin: 0 0 5px;
+}
+
+.application-status {
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+.status-applied {
+    background: #cff4fc;
+    color: #055160;
+}
+
+.status-shortlisted {
+    background: #fff3cd;
+    color: #664d03;
+}
+
+.status-selected {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.status-rejected {
+    background: #f8d7da;
+    color: #842029;
+}
+
+.status-default {
+    background: #e2e3e5;
+    color: #41464b;
+}
+
+.application-details {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.application-info {
+    padding: 15px 0;
+    border-top: 1px solid #eee;
+}
+
+.application-info h4,
+.interview-section h4 {
+    margin: 0 0 10px;
+}
+
+.application-info p {
+    margin: 5px 0;
+}
+
+.feedback {
+    background: #fff3cd;
+    padding: 15px;
+    border-radius: 8px;
+    border-top: none;
+    margin-bottom: 15px;
+}
+
+.interview-section {
+    margin-top: 15px;
+    padding: 15px;
+    background: #e7f1ff;
+    border-radius: 8px;
+}
+
+.interview-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.waiting-message {
+    margin-top: 15px;
+    padding: 12px;
+    background: #f8f9fa;
+    border-radius: 6px;
+    color: #555;
+}
+
+.shortlisted-message {
+    background: #fff3cd;
+    color: #664d03;
+}
+
+.result-message {
+    margin-top: 15px;
+    padding: 12px;
+    border-radius: 6px;
+}
+
+.result-message strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.result-message p {
+    margin: 0;
+}
+
+.selected-result {
+    background: #d1e7dd;
+    color: #0f5132;
+}
+
+.rejected-result {
+    background: #f8d7da;
+    color: #842029;
 }
 
 
@@ -1098,34 +1746,6 @@ onMounted(async () => {
     margin-bottom: 20px;
 }
 
-.apply-section {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-
-.apply-button {
-    width: 100%;
-    padding: 11px;
-    border: none;
-    border-radius: 6px;
-    background: #0d6efd;
-    color: white;
-    font-size: 15px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.apply-button:hover {
-    opacity: 0.9;
-}
-
-.apply-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-
 @media (max-width: 900px) {
 
     .jobs-grid {
@@ -1134,6 +1754,14 @@ onMounted(async () => {
 
     .search-panel {
         grid-template-columns: 1fr 1fr;
+    }
+
+    .application-details {
+        grid-template-columns: 1fr;
+    }
+
+    .application-header {
+        flex-direction: column;
     }
 }
 

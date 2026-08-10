@@ -1,8 +1,5 @@
 from celery import Celery, Task
-from app import create_app
 
-
-flask_app = create_app()
 
 celery = Celery(
     "placement_portal",
@@ -22,18 +19,10 @@ celery.conf.update(
     enable_utc=False,
 )
 
+
 celery.conf.beat_schedule = {
     "check-interview-reminders": {
         "task": "app.tasks.interview_reminders.send_interview_reminders",
         "schedule": 3600.0,
     },
 }
-
-
-class FlaskTask(Task):
-    def __call__(self, *args, **kwargs):
-        with flask_app.app_context():
-            return self.run(*args, **kwargs)
-
-
-celery.Task = FlaskTask

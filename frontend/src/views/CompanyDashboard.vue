@@ -29,6 +29,12 @@ const editing = ref(false);
 const creatingJob = ref(false);
 const editingJob = ref(null);
 
+/* CSV EXPORT */
+const exportLoading = ref(false);
+const exportStatus = ref("");
+const exportTaskId = ref(null);
+let exportPollTimer = null;
+
 const form = ref({
     name: "",
     industry: "",
@@ -208,9 +214,6 @@ function formatUTCDateTime(value) {
         return "-";
     }
 
-    // Backend timestamps such as applied_at/updated_at are stored in UTC
-    // without an explicit timezone suffix. Tell JavaScript that they are UTC
-    // before converting them to the user's local timezone (IST on your system).
     const utcValue =
         value.endsWith("Z") ? value : `${value}Z`;
 
@@ -232,8 +235,6 @@ function formatLocalDateTime(value) {
         return "-";
     }
 
-    // Interview times come from <input type="datetime-local>, so they are
-    // intentionally treated as local time rather than UTC.
     const date = new Date(value);
 
     if (isNaN(date.getTime())) {
@@ -609,6 +610,172 @@ async function changeJobStatus(job) {
 }
 
 
+/* =========================
+   CSV EXPORT
+   ========================= */
+
+async function startExport() {
+
+    exportLoading.value = true;
+    exportStatus.value = "Starting export...";
+    error.value = "";
+    success.value = "";
+
+    try {
+
+        const response = await api.post(
+            "/api/company/export-history"
+        );
+
+        exportTaskId.value =
+            response.data.task_id;
+
+        exportStatus.value =
+            "Export started. Preparing your CSV...";
+
+        pollExportStatus();
+
+    } catch (err) {
+
+        exportLoading.value = false;
+        exportStatus.value = "";
+
+        error.value =
+            err.response?.data?.message ||
+            "Failed to start CSV export.";
+    }
+}
+
+
+function pollExportStatus() {
+
+    if (exportPollTimer) {
+        clearTimeout(exportPollTimer);
+    }
+
+    exportPollTimer = setTimeout(
+        checkExportStatus,
+        1000
+    );
+}
+
+
+async function checkExportStatus() {
+
+    if (!exportTaskId.value) {
+        return;
+    }
+
+    try {
+
+        const response = await api.get(
+            `/api/company/export-history/status/${exportTaskId.value}`
+        );
+
+        const status = response.data.status;
+
+        if (
+            status === "PENDING" ||
+            status === "STARTED"
+        ) {
+
+            exportStatus.value =
+                "Export is still being prepared...";
+
+            pollExportStatus();
+
+            return;
+        }
+
+        if (status === "SUCCESS") {
+
+            exportStatus.value =
+                "Export completed. Downloading...";
+
+            await downloadExport();
+
+            exportLoading.value = false;
+
+            exportStatus.value =
+                "CSV export completed successfully.";
+
+            success.value =
+                `Export completed. ${response.data.records || 0} records exported.`;
+
+            return;
+        }
+
+        exportLoading.value = false;
+        exportStatus.value = "";
+
+        error.value =
+            response.data.message ||
+            "CSV export failed.";
+
+    } catch (err) {
+
+        exportLoading.value = false;
+        exportStatus.value = "";
+
+        error.value =
+            err.response?.data?.message ||
+            "Failed to check export status.";
+    }
+}
+
+
+async function downloadExport() {
+
+    const response = await api.get(
+        `/api/company/export-history/download/${exportTaskId.value}`,
+        {
+            responseType: "blob"
+        }
+    );
+
+    const blob = new Blob(
+        [response.data],
+        {
+            type: "text/csv"
+        }
+    );
+
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+
+    const disposition =
+        response.headers["content-disposition"];
+
+    if (disposition) {
+
+        const filenameMatch =
+            disposition.match(
+                /filename="?([^"]+)"?/
+            );
+
+        if (filenameMatch) {
+            link.download = filenameMatch[1];
+        }
+    }
+
+    if (!link.download) {
+        link.download =
+            "company_application_history.csv";
+    }
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    window.URL.revokeObjectURL(url);
+}
+
+
 onMounted(() => {
     fetchCompanyProfile();
     fetchJobs();
@@ -798,12 +965,35 @@ onMounted(() => {
 
         <h2>Placement Drives</h2>
 
-        <button
-            v-if="!creatingJob"
-            @click="startCreatingJob"
+        <div class="dashboard-actions">
+
+            <button
+                v-if="!creatingJob"
+                @click="startCreatingJob"
+            >
+                Create Placement Drive
+            </button>
+
+            <button
+                class="export-button"
+                @click="startExport"
+                :disabled="exportLoading"
+            >
+                {{
+                    exportLoading
+                        ? "Exporting..."
+                        : "Export Application History"
+                }}
+            </button>
+
+        </div>
+
+        <p
+            v-if="exportStatus"
+            class="export-status"
         >
-            Create Placement Drive
-        </button>
+            {{ exportStatus }}
+        </p>
 
 
 
@@ -1056,394 +1246,395 @@ onMounted(() => {
 
         <div v-if="selectedJob">
 
-    <hr>
+            <hr>
 
-    <h2>
-        Applicants for {{ selectedJob.title }}
-    </h2>
+            <h2>
+                Applicants for {{ selectedJob.title }}
+            </h2>
 
-    <button @click="closeApplicants">
-        Close Applicants
-    </button>
+            <button @click="closeApplicants">
+                Close Applicants
+            </button>
 
-    <p v-if="applicationsLoading">
-        Loading applicants...
-    </p>
-
-    <p
-        v-else-if="applications.length === 0"
-    >
-        No students have applied yet.
-    </p>
-
-
-    <div
-        v-for="application in applications"
-        :key="application.id"
-    >
-
-        <hr>
-
-        <h3>
-            {{ application.student.name }}
-        </h3>
-
-        <p>
-            <strong>Student ID:</strong>
-            {{ application.student.student_id }}
-        </p>
-
-        <p>
-            <strong>Department:</strong>
-            {{ application.student.department }}
-        </p>
-
-        <p>
-            <strong>CGPA:</strong>
-            {{ application.student.cgpa }}
-        </p>
-
-        <p>
-            <strong>Phone:</strong>
-            {{ application.student.phone }}
-        </p>
-
-        <p>
-            <strong>Skills:</strong>
-            {{ application.student.skills || "Not provided" }}
-        </p>
-
-        <p>
-            <strong>Education:</strong>
-            {{ application.student.education || "Not provided" }}
-        </p>
-
-        <p>
-            <strong>Applied At:</strong>
-            {{ formatUTCDateTime(application.applied_at) }}
-        </p>
-
-        <p>
-            <strong>Status:</strong>
-            {{ application.status }}
-        </p>
-
-
-        <button
-            v-if="application.student.resume"
-            @click="viewResume(application)"
-        >
-            View Resume
-        </button>
-
-
-
-<div
-    v-if="application.status === 'Applied'"
->
-
-    <div>
-        <label>
-            Feedback
-        </label>
-
-        <br>
-
-        <textarea
-            v-model="feedback[application.id]"
-            placeholder="Enter feedback"
-        ></textarea>
-    </div>
-
-    <br>
-
-    <button
-        @click="
-            updateApplicationStatus(
-                application,
-                'Shortlisted'
-            )
-        "
-    >
-        Shortlist
-    </button>
-
-    <button
-        @click="
-            updateApplicationStatus(
-                application,
-                'Rejected'
-            )
-        "
-    >
-        Reject
-    </button>
-
-</div>
-
-
-
-<div
-    v-else-if="application.status === 'Shortlisted' || application.status === 'Interview'"
->
-
-    <p>
-        <strong>Feedback:</strong>
-        {{ application.remarks || "None" }}
-    </p>
-
-    <hr>
-
-    <h4>Interview</h4>
-
-
-    <div
-        v-if="application.interview_datetime"
-    >
-
-        <p>
-            <strong>Date & Time:</strong>
-            {{ formatLocalDateTime(application.interview_datetime) }}
-        </p>
-
-        <p>
-            <strong>Mode:</strong>
-            {{ application.interview_mode }}
-        </p>
-
-        <p
-            v-if="application.interview_location"
-        >
-            <strong>Location / Link:</strong>
-            {{ application.interview_location }}
-        </p>
-
-        <p
-            v-if="application.interview_notes"
-        >
-            <strong>Notes:</strong>
-            {{ application.interview_notes }}
-        </p>
-
-        <hr>
-
-        <h4>Final Decision</h4>
-
-        <div>
-            <label>
-                Company Feedback
-            </label>
-
-            <br>
-
-            <textarea
-                v-model="feedback[application.id]"
-                placeholder="Enter feedback"
-            ></textarea>
-        </div>
-
-        <br>
-
-        <div>
-            <label>
-                Offer Letter (PDF)
-            </label>
-
-            <br>
-
-            <input
-                :key="
-                    offerLetterInputKey[application.id] || 0
-                "
-                type="file"
-                accept=".pdf,application/pdf"
-                @change="
-                    selectOfferLetter(
-                        application,
-                        $event
-                    )
-                "
-            >
-
-            <p
-                v-if="offerLetter[application.id]"
-            >
-                Selected:
-                {{ offerLetter[application.id].name }}
+            <p v-if="applicationsLoading">
+                Loading applicants...
             </p>
 
-            <small>
-                PDF only, maximum 5 MB.
-                Required when issuing the offer.
-            </small>
-        </div>
-
-        <br>
-
-        <button
-            @click="
-                updateFinalStatus(
-                    application,
-                    'Offer'
-                )
-            "
-        >
-            Select
-        </button>
-
-        <button
-            @click="
-                updateFinalStatus(
-                    application,
-                    'Rejected'
-                )
-            "
-        >
-            Reject
-        </button>
-
-    </div>
-
-
-
-    <div v-else-if="application.status === 'Shortlisted'">
-
-        <p>
-            No interview scheduled yet.
-        </p>
-
-        <div>
-            <label>
-                Interview Date & Time
-            </label>
-
-            <br>
-
-            <input
-                type="datetime-local"
-                v-model="
-                    getInterviewForm(application)
-                        .interview_datetime
-                "
+            <p
+                v-else-if="applications.length === 0"
             >
-        </div>
+                No students have applied yet.
+            </p>
 
-        <br>
 
-        <div>
-            <label>
-                Interview Mode
-            </label>
-
-            <br>
-
-            <select
-                v-model="
-                    getInterviewForm(application)
-                        .interview_mode
-                "
+            <div
+                v-for="application in applications"
+                :key="application.id"
             >
-                <option value="Online">
-                    Online
-                </option>
 
-                <option value="Offline">
-                    Offline
-                </option>
-            </select>
-        </div>
+                <hr>
 
-        <br>
+                <h3>
+                    {{ application.student.name }}
+                </h3>
 
-        <div>
-            <label>
-                Location / Meeting Link
-            </label>
+                <p>
+                    <strong>Student ID:</strong>
+                    {{ application.student.student_id }}
+                </p>
 
-            <br>
+                <p>
+                    <strong>Department:</strong>
+                    {{ application.student.department }}
+                </p>
 
-            <input
-                type="text"
-                v-model="
-                    getInterviewForm(application)
-                        .interview_location
-                "
-            >
-        </div>
+                <p>
+                    <strong>CGPA:</strong>
+                    {{ application.student.cgpa }}
+                </p>
 
-        <br>
+                <p>
+                    <strong>Phone:</strong>
+                    {{ application.student.phone }}
+                </p>
 
-        <div>
-            <label>
-                Interview Notes
-            </label>
+                <p>
+                    <strong>Skills:</strong>
+                    {{ application.student.skills || "Not provided" }}
+                </p>
 
-            <br>
+                <p>
+                    <strong>Education:</strong>
+                    {{ application.student.education || "Not provided" }}
+                </p>
 
-            <textarea
-                v-model="
-                    getInterviewForm(application)
-                        .interview_notes
-                "
-                placeholder="Additional interview instructions"
-            ></textarea>
-        </div>
+                <p>
+                    <strong>Applied At:</strong>
+                    {{ formatUTCDateTime(application.applied_at) }}
+                </p>
 
-        <br>
-
-        <button
-            @click="
-                scheduleInterview(application)
-            "
-        >
-            Schedule Interview
-        </button>
-
-    </div>
-
-    <div v-else-if="application.status === 'Interview'">
-        <p>
-            <strong>Interview:</strong>
-            Scheduled
-        </p>
-    </div>
-
-</div>
+                <p>
+                    <strong>Status:</strong>
+                    {{ application.status }}
+                </p>
 
 
-<div v-else>
+                <button
+                    v-if="application.student.resume"
+                    @click="viewResume(application)"
+                >
+                    View Resume
+                </button>
 
-    <p>
-        <strong>Feedback:</strong>
-        {{ application.remarks || "None" }}
-    </p>
 
-    <p v-if="application.status === 'Offer'">
-        <strong>Final Result:</strong>
-        Offer Issued
-    </p>
 
-    <button
-        v-if="application.status === 'Offer'"
-        @click="markAsPlaced(application)"
-    >
-        Mark as Placed
-    </button>
+                <div
+                    v-if="application.status === 'Applied'"
+                >
 
-    <p v-else-if="application.status === 'Placed'">
-        <strong>Final Result:</strong>
-        Placed
-    </p>
+                    <div>
+                        <label>
+                            Feedback
+                        </label>
 
-    <p v-else-if="application.status === 'Rejected'">
-        <strong>Final Result:</strong>
-        Rejected
-    </p>
-        </div>
+                        <br>
 
-        </div>
+                        <textarea
+                            v-model="feedback[application.id]"
+                            placeholder="Enter feedback"
+                        ></textarea>
+                    </div>
+
+                    <br>
+
+                    <button
+                        @click="
+                            updateApplicationStatus(
+                                application,
+                                'Shortlisted'
+                            )
+                        "
+                    >
+                        Shortlist
+                    </button>
+
+                    <button
+                        @click="
+                            updateApplicationStatus(
+                                application,
+                                'Rejected'
+                            )
+                        "
+                    >
+                        Reject
+                    </button>
+
+                </div>
+
+
+
+                <div
+                    v-else-if="application.status === 'Shortlisted' || application.status === 'Interview'"
+                >
+
+                    <p>
+                        <strong>Feedback:</strong>
+                        {{ application.remarks || "None" }}
+                    </p>
+
+                    <hr>
+
+                    <h4>Interview</h4>
+
+
+                    <div
+                        v-if="application.interview_datetime"
+                    >
+
+                        <p>
+                            <strong>Date & Time:</strong>
+                            {{ formatLocalDateTime(application.interview_datetime) }}
+                        </p>
+
+                        <p>
+                            <strong>Mode:</strong>
+                            {{ application.interview_mode }}
+                        </p>
+
+                        <p
+                            v-if="application.interview_location"
+                        >
+                            <strong>Location / Link:</strong>
+                            {{ application.interview_location }}
+                        </p>
+
+                        <p
+                            v-if="application.interview_notes"
+                        >
+                            <strong>Notes:</strong>
+                            {{ application.interview_notes }}
+                        </p>
+
+                        <hr>
+
+                        <h4>Final Decision</h4>
+
+                        <div>
+                            <label>
+                                Company Feedback
+                            </label>
+
+                            <br>
+
+                            <textarea
+                                v-model="feedback[application.id]"
+                                placeholder="Enter feedback"
+                            ></textarea>
+                        </div>
+
+                        <br>
+
+                        <div>
+                            <label>
+                                Offer Letter (PDF)
+                            </label>
+
+                            <br>
+
+                            <input
+                                :key="
+                                    offerLetterInputKey[application.id] || 0
+                                "
+                                type="file"
+                                accept=".pdf,application/pdf"
+                                @change="
+                                    selectOfferLetter(
+                                        application,
+                                        $event
+                                    )
+                                "
+                            >
+
+                            <p
+                                v-if="offerLetter[application.id]"
+                            >
+                                Selected:
+                                {{ offerLetter[application.id].name }}
+                            </p>
+
+                            <small>
+                                PDF only, maximum 5 MB.
+                                Required when issuing the offer.
+                            </small>
+                        </div>
+
+                        <br>
+
+                        <button
+                            @click="
+                                updateFinalStatus(
+                                    application,
+                                    'Offer'
+                                )
+                            "
+                        >
+                            Select
+                        </button>
+
+                        <button
+                            @click="
+                                updateFinalStatus(
+                                    application,
+                                    'Rejected'
+                                )
+                            "
+                        >
+                            Reject
+                        </button>
+
+                    </div>
+
+
+
+                    <div v-else-if="application.status === 'Shortlisted'">
+
+                        <p>
+                            No interview scheduled yet.
+                        </p>
+
+                        <div>
+                            <label>
+                                Interview Date & Time
+                            </label>
+
+                            <br>
+
+                            <input
+                                type="datetime-local"
+                                v-model="
+                                    getInterviewForm(application)
+                                        .interview_datetime
+                                "
+                            >
+                        </div>
+
+                        <br>
+
+                        <div>
+                            <label>
+                                Interview Mode
+                            </label>
+
+                            <br>
+
+                            <select
+                                v-model="
+                                    getInterviewForm(application)
+                                        .interview_mode
+                                "
+                            >
+                                <option value="Online">
+                                    Online
+                                </option>
+
+                                <option value="Offline">
+                                    Offline
+                                </option>
+                            </select>
+                        </div>
+
+                        <br>
+
+                        <div>
+                            <label>
+                                Location / Meeting Link
+                            </label>
+
+                            <br>
+
+                            <input
+                                type="text"
+                                v-model="
+                                    getInterviewForm(application)
+                                        .interview_location
+                                "
+                            >
+                        </div>
+
+                        <br>
+
+                        <div>
+                            <label>
+                                Interview Notes
+                            </label>
+
+                            <br>
+
+                            <textarea
+                                v-model="
+                                    getInterviewForm(application)
+                                        .interview_notes
+                                "
+                                placeholder="Additional interview instructions"
+                            ></textarea>
+                        </div>
+
+                        <br>
+
+                        <button
+                            @click="
+                                scheduleInterview(application)
+                            "
+                        >
+                            Schedule Interview
+                        </button>
+
+                    </div>
+
+                    <div v-else-if="application.status === 'Interview'">
+                        <p>
+                            <strong>Interview:</strong>
+                            Scheduled
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <div v-else>
+
+                    <p>
+                        <strong>Feedback:</strong>
+                        {{ application.remarks || "None" }}
+                    </p>
+
+                    <p v-if="application.status === 'Offer'">
+                        <strong>Final Result:</strong>
+                        Offer Issued
+                    </p>
+
+                    <button
+                        v-if="application.status === 'Offer'"
+                        @click="markAsPlaced(application)"
+                    >
+                        Mark as Placed
+                    </button>
+
+                    <p v-else-if="application.status === 'Placed'">
+                        <strong>Final Result:</strong>
+                        Placed
+                    </p>
+
+                    <p v-else-if="application.status === 'Rejected'">
+                        <strong>Final Result:</strong>
+                        Rejected
+                    </p>
+
+                </div>
 
             </div>
+
+        </div>
 
         <br>
 
@@ -1454,3 +1645,42 @@ onMounted(() => {
 </template>
 
 
+<style scoped>
+
+.dashboard-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.export-button {
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    background: #198754;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.export-button:hover {
+    opacity: 0.9;
+}
+
+.export-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.export-status {
+    padding: 10px 14px;
+    background: #e7f1ff;
+    color: #084298;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+</style>

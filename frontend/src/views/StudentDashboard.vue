@@ -26,6 +26,12 @@ const resumeFile = ref(null);
 const resumeUploading = ref(false);
 const resumeInput = ref(null);
 
+/* CSV EXPORT */
+const exportLoading = ref(false);
+const exportStatus = ref("");
+const exportTaskId = ref(null);
+let exportPollTimer = null;
+
 const editForm = ref({
     name: "",
     department: "",
@@ -411,9 +417,6 @@ const formatUTCDateTime = (value) => {
         return "-";
     }
 
-    // applied_at and updated_at are backend timestamps stored in UTC
-    // without a timezone suffix. Explicitly mark them as UTC before
-    // converting to the browser's local timezone.
     const utcValue =
         value.endsWith("Z") ? value : `${value}Z`;
 
@@ -435,8 +438,6 @@ const formatLocalDateTime = (value) => {
         return "-";
     }
 
-    // Interview datetime is entered using datetime-local and represents
-    // the local time selected by the company.
     const date = new Date(value);
 
     if (isNaN(date.getTime())) {
@@ -447,6 +448,160 @@ const formatLocalDateTime = (value) => {
         dateStyle: "medium",
         timeStyle: "short"
     });
+};
+
+
+/* =========================
+   CSV EXPORT
+   ========================= */
+
+const startExport = async () => {
+    exportLoading.value = true;
+    exportStatus.value = "Starting export...";
+    errorMessage.value = "";
+    successMessage.value = "";
+
+    try {
+        const response = await api.post(
+            "/api/student/export-history"
+        );
+
+        exportTaskId.value = response.data.task_id;
+
+        exportStatus.value =
+            "Export started. Preparing your CSV...";
+
+        pollExportStatus();
+
+    } catch (error) {
+        exportLoading.value = false;
+        exportStatus.value = "";
+
+        errorMessage.value =
+            error.response?.data?.message ||
+            "Failed to start CSV export.";
+    }
+};
+
+
+const pollExportStatus = () => {
+    if (exportPollTimer) {
+        clearTimeout(exportPollTimer);
+    }
+
+    exportPollTimer = setTimeout(
+        checkExportStatus,
+        1000
+    );
+};
+
+
+const checkExportStatus = async () => {
+    if (!exportTaskId.value) {
+        return;
+    }
+
+    try {
+        const response = await api.get(
+            `/api/student/export-history/status/${exportTaskId.value}`
+        );
+
+        const status = response.data.status;
+
+        if (
+            status === "PENDING" ||
+            status === "STARTED"
+        ) {
+            exportStatus.value =
+                "Export is still being prepared...";
+
+            pollExportStatus();
+            return;
+        }
+
+        if (status === "SUCCESS") {
+
+            exportStatus.value =
+                "Export completed. Downloading...";
+
+            await downloadExport();
+
+            exportLoading.value = false;
+
+            exportStatus.value =
+                "CSV export completed successfully.";
+
+            successMessage.value =
+                `Export completed. ${response.data.records || 0} records exported.`;
+
+            return;
+        }
+
+        exportLoading.value = false;
+        exportStatus.value = "";
+
+        errorMessage.value =
+            response.data.message ||
+            "CSV export failed.";
+
+    } catch (error) {
+        exportLoading.value = false;
+        exportStatus.value = "";
+
+        errorMessage.value =
+            error.response?.data?.message ||
+            "Failed to check export status.";
+    }
+};
+
+
+const downloadExport = async () => {
+
+    const response = await api.get(
+        `/api/student/export-history/download/${exportTaskId.value}`,
+        {
+            responseType: "blob"
+        }
+    );
+
+    const blob = new Blob(
+        [response.data],
+        {
+            type: "text/csv"
+        }
+    );
+
+    const url = window.URL.createObjectURL(blob);
+
+    const link = document.createElement("a");
+
+    link.href = url;
+
+    const disposition =
+        response.headers["content-disposition"];
+
+    if (disposition) {
+        const filenameMatch =
+            disposition.match(
+                /filename="?([^"]+)"?/
+            );
+
+        if (filenameMatch) {
+            link.download = filenameMatch[1];
+        }
+    }
+
+    if (!link.download) {
+        link.download = "application_history.csv";
+    }
+
+    document.body.appendChild(link);
+
+    link.click();
+
+    document.body.removeChild(link);
+
+    window.URL.revokeObjectURL(url);
 };
 
 
@@ -579,84 +734,84 @@ onMounted(async () => {
 
                     <div class="profile-item full-width">
 
-<label>Resume</label>
+                        <label>Resume</label>
 
-<div
-    v-if="student.resume"
-    class="resume-status uploaded"
->
-    <div class="resume-current">
+                        <div
+                            v-if="student.resume"
+                            class="resume-status uploaded"
+                        >
+                            <div class="resume-current">
 
-        <span>
-            Resume uploaded
-        </span>
+                                <span>
+                                    Resume uploaded
+                                </span>
 
-        <button
-            type="button"
-            class="view-resume-button"
-            @click="viewResume"
-        >
-            View Resume
-        </button>
+                                <button
+                                    type="button"
+                                    class="view-resume-button"
+                                    @click="viewResume"
+                                >
+                                    View Resume
+                                </button>
 
-    </div>
-</div>
+                            </div>
+                        </div>
 
-<div
-    v-else
-    class="resume-status not-uploaded"
->
-    <span>
-        No resume uploaded
-    </span>
-</div>
-
-
-<div class="resume-upload">
-
-    <input
-        ref="resumeInput"
-        type="file"
-        accept=".pdf,.doc,.docx"
-        @change="selectResume"
-    />
+                        <div
+                            v-else
+                            class="resume-status not-uploaded"
+                        >
+                            <span>
+                                No resume uploaded
+                            </span>
+                        </div>
 
 
-    <p
-        v-if="resumeFile"
-        class="selected-file"
-    >
-        Selected:
-        {{ resumeFile.name }}
-    </p>
+                        <div class="resume-upload">
+
+                            <input
+                                ref="resumeInput"
+                                type="file"
+                                accept=".pdf,.doc,.docx"
+                                @change="selectResume"
+                            />
 
 
-    <button
-        type="button"
-        class="resume-upload-button"
-        @click="uploadResume"
-        :disabled="
-            !resumeFile ||
-            resumeUploading
-        "
-    >
-        {{
-            resumeUploading
-                ? "Uploading..."
-                : student.resume
-                    ? "Update Resume"
-                    : "Upload Resume"
-        }}
-    </button>
+                            <p
+                                v-if="resumeFile"
+                                class="selected-file"
+                            >
+                                Selected:
+                                {{ resumeFile.name }}
+                            </p>
 
 
-    <small>
-        PDF, DOC or DOCX — maximum 5 MB
-    </small>
+                            <button
+                                type="button"
+                                class="resume-upload-button"
+                                @click="uploadResume"
+                                :disabled="
+                                    !resumeFile ||
+                                    resumeUploading
+                                "
+                            >
+                                {{
+                                    resumeUploading
+                                        ? "Uploading..."
+                                        : student.resume
+                                            ? "Update Resume"
+                                            : "Upload Resume"
+                                }}
+                            </button>
 
-</div>
 
-</div>
+                            <small>
+                                PDF, DOC or DOCX — maximum 5 MB
+                            </small>
+
+                        </div>
+
+                    </div>
 
                 </div>
 
@@ -1135,7 +1290,26 @@ onMounted(async () => {
 
                     <h2>My Applications</h2>
 
+                    <button
+                        class="export-button"
+                        @click="startExport"
+                        :disabled="exportLoading"
+                    >
+                        {{
+                            exportLoading
+                                ? "Exporting..."
+                                : "Export Application History"
+                        }}
+                    </button>
+
                 </div>
+
+                <p
+                    v-if="exportStatus"
+                    class="export-status"
+                >
+                    {{ exportStatus }}
+                </p>
 
 
                 <div
@@ -2123,6 +2297,37 @@ onMounted(async () => {
 }
 
 
+/* CSV EXPORT */
+
+.export-button {
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    background: #198754;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.export-button:hover {
+    opacity: 0.9;
+}
+
+.export-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.export-status {
+    margin: 0 0 20px;
+    padding: 10px 14px;
+    background: #e7f1ff;
+    color: #084298;
+    border-radius: 6px;
+}
+
+
 .message {
     padding: 20px;
     text-align: center;
@@ -2293,6 +2498,11 @@ onMounted(async () => {
 
     .search-actions button {
         flex: 1;
+    }
+
+    .section-header {
+        flex-wrap: wrap;
+        gap: 10px;
     }
 }
 

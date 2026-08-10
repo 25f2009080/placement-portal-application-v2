@@ -729,3 +729,134 @@ def view_student_resume():
         student.resume,
         as_attachment=False
     )
+
+
+@student_bp.route(
+    "/api/student/export-history",
+    methods=["POST"]
+)
+@jwt_required()
+def start_student_export():
+
+    from app.tasks.exports import export_application_history
+
+    user, student, error = get_current_student()
+
+    if error:
+        return error
+
+    task = export_application_history.delay(
+        "student",
+        student.id
+    )
+
+    return jsonify({
+        "success": True,
+        "message": "Export started",
+        "task_id": task.id
+    }), 202
+
+
+@student_bp.route(
+    "/api/student/export-history/status/<task_id>",
+    methods=["GET"]
+)
+@jwt_required()
+def student_export_status(task_id):
+
+    from celery.result import AsyncResult
+    from app.celery_app import celery
+
+    user, student, error = get_current_student()
+
+    if error:
+        return error
+
+    task = AsyncResult(
+        task_id,
+        app=celery
+    )
+
+    if task.state == "PENDING":
+        return jsonify({
+            "success": True,
+            "status": "PENDING"
+        }), 200
+
+    if task.state == "STARTED":
+        return jsonify({
+            "success": True,
+            "status": "STARTED"
+        }), 200
+
+    if task.state == "SUCCESS":
+
+        result = task.result
+
+        return jsonify({
+            "success": True,
+            "status": "SUCCESS",
+            "filename": result.get("filename"),
+            "records": result.get("records", 0)
+        }), 200
+
+    if task.state == "FAILURE":
+        return jsonify({
+            "success": False,
+            "status": "FAILURE",
+            "message": "Export failed"
+        }), 500
+
+    return jsonify({
+        "success": True,
+        "status": task.state
+    }), 200
+
+
+@student_bp.route(
+    "/api/student/export-history/download/<task_id>",
+    methods=["GET"]
+)
+@jwt_required()
+def download_student_export(task_id):
+
+    from celery.result import AsyncResult
+    from app.celery_app import celery
+
+    user, student, error = get_current_student()
+
+    if error:
+        return error
+
+    task = AsyncResult(
+        task_id,
+        app=celery
+    )
+
+    if not task.ready():
+        return jsonify({
+            "success": False,
+            "message": "Export is not ready yet"
+        }), 400
+
+    if task.failed():
+        return jsonify({
+            "success": False,
+            "message": "Export failed"
+        }), 500
+
+    result = task.result
+
+    filepath = result.get("filepath")
+
+    if not filepath or not os.path.exists(filepath):
+        return jsonify({
+            "success": False,
+            "message": "Export file not found"
+        }), 404
+
+    return send_from_directory(
+        os.path.dirname(filepath),
+        os.path.basename(filepath),
+        as_attachment=True
+    )

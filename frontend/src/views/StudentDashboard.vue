@@ -388,8 +388,14 @@ const getStatusClass = (status) => {
         case "Shortlisted":
             return "status-shortlisted";
 
-        case "Selected":
-            return "status-selected";
+        case "Interview":
+            return "status-interview";
+
+        case "Offer":
+            return "status-offer";
+
+        case "Placed":
+            return "status-placed";
 
         case "Rejected":
             return "status-rejected";
@@ -1425,17 +1431,17 @@ onMounted(async () => {
                         <div
                             v-if="
                                 application.status ===
-                                'Selected'
+                                'Offer'
                             "
                             class="result-message selected-result"
                         >
 
                             <strong>
-                                🎉 Congratulations!
+                                🎉 Offer Received!
                             </strong>
 
                             <p>
-                                You have been selected for this
+                                You have received an offer for this
                                 placement opportunity.
                             </p>
 
@@ -1469,6 +1475,80 @@ onMounted(async () => {
                         <div
                             v-if="
                                 application.status ===
+                                'Placed'
+                            "
+                            class="result-message placed-result"
+                        >
+
+                            <strong>
+                                🎉 Congratulations! You are Placed.
+                            </strong>
+
+                            <p>
+                                Your placement has been confirmed.
+                            </p>
+
+                            <div
+                                v-if="application.placement"
+                                class="placement-details"
+                            >
+
+                                <p>
+                                    <strong>Position:</strong>
+                                    {{ application.placement.position || "-" }}
+                                </p>
+
+                                <p>
+                                    <strong>Salary:</strong>
+                                    <span
+                                        v-if="application.placement.salary !== null"
+                                    >
+                                        ₹{{ application.placement.salary }}
+                                    </span>
+                                    <span v-else>
+                                        Not specified
+                                    </span>
+                                </p>
+
+                                <p
+                                    v-if="application.placement.joining_date"
+                                >
+                                    <strong>Joining Date:</strong>
+                                    {{ application.placement.joining_date }}
+                                </p>
+
+                                <div
+                                    v-if="
+                                        application.placement.offer_letter
+                                    "
+                                    class="offer-letter-section"
+                                >
+                                    <strong>Offer Letter</strong>
+
+                                    <p>
+                                        Your offer letter is available.
+                                    </p>
+
+                                    <button
+                                        type="button"
+                                        class="view-offer-letter-button"
+                                        @click="
+                                            viewOfferLetter(application)
+                                        "
+                                    >
+                                        View Offer Letter
+                                    </button>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <div
+                            v-if="
+                                application.status ===
                                 'Rejected'
                             "
                             class="result-message rejected-result"
@@ -1483,6 +1563,19 @@ onMounted(async () => {
                                 for this opportunity.
                             </p>
 
+                        </div>
+
+
+                        <div
+                            v-if="
+                                application.status ===
+                                'Interview'
+                            "
+                            class="waiting-message interview-status-message"
+                        >
+                            Your interview has been scheduled. Please
+                            attend the interview at the scheduled date
+                            and time.
                         </div>
 
 
@@ -1906,9 +1999,19 @@ onMounted(async () => {
     color: #664d03;
 }
 
-.status-selected {
+.status-interview {
+    background: #e7f1ff;
+    color: #084298;
+}
+
+.status-offer {
     background: #d1e7dd;
     color: #0f5132;
+}
+
+.status-placed {
+    background: #198754;
+    color: #ffffff;
 }
 
 .status-rejected {
@@ -1994,9 +2097,24 @@ onMounted(async () => {
     margin: 0;
 }
 
-.selected-result {
+.offer-result {
     background: #d1e7dd;
     color: #0f5132;
+}
+
+.placed-result {
+    background: #198754;
+    color: #ffffff;
+}
+
+.placement-details {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.placement-details p {
+    margin: 6px 0;
 }
 
 .rejected-result {

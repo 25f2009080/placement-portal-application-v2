@@ -15,7 +15,7 @@ Improvement over PPA v1 in terms of UI, Performance, and Features
 7. Student CGPA missing. (FIXED)
 8. JWT Expiry
 9. Deactivated user's jwt should not work.
-10. Min cgpa cannot apply
+10. Min cgpa cannot apply (FIXED)
 11. Can company edit profile details like HR number. (FIXED)
 12. Admin can't see full details. (FIXED)
 13. Company description not loading in admin dash. (FIXED)

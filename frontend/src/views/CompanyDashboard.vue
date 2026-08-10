@@ -355,18 +355,18 @@ async function updateFinalStatus(
     }
 
     if (
-        status === "Selected" &&
+        status === "Offer" &&
         !offerLetter.value[application.id]
     ) {
         error.value =
-            "Please upload the offer letter PDF before selecting the applicant.";
+            "Please upload the offer letter PDF before issuing the offer.";
         return;
     }
 
     try {
         let response;
 
-        if (status === "Selected") {
+        if (status === "Offer") {
             const formData = new FormData();
 
             formData.append("status", status);
@@ -402,6 +402,27 @@ async function updateFinalStatus(
         error.value =
             err.response?.data?.message ||
             "Failed to update final status.";
+    }
+}
+
+
+async function markAsPlaced(application) {
+    error.value = "";
+    success.value = "";
+
+    try {
+        const response = await api.put(
+            `/api/company/applications/${application.id}/placed`
+        );
+
+        success.value = response.data.message;
+
+        await viewApplicants(selectedJob.value);
+
+    } catch (err) {
+        error.value =
+            err.response?.data?.message ||
+            "Failed to mark applicant as placed.";
     }
 }
 
@@ -1163,7 +1184,7 @@ onMounted(() => {
 
 
 <div
-    v-else-if="application.status === 'Shortlisted'"
+    v-else-if="application.status === 'Shortlisted' || application.status === 'Interview'"
 >
 
     <p>
@@ -1253,7 +1274,7 @@ onMounted(() => {
 
             <small>
                 PDF only, maximum 5 MB.
-                Required when selecting the applicant.
+                Required when issuing the offer.
             </small>
         </div>
 
@@ -1263,7 +1284,7 @@ onMounted(() => {
             @click="
                 updateFinalStatus(
                     application,
-                    'Selected'
+                    'Offer'
                 )
             "
         >
@@ -1285,7 +1306,7 @@ onMounted(() => {
 
 
 
-    <div v-else>
+    <div v-else-if="application.status === 'Shortlisted'">
 
         <p>
             No interview scheduled yet.
@@ -1380,6 +1401,13 @@ onMounted(() => {
 
     </div>
 
+    <div v-else-if="application.status === 'Interview'">
+        <p>
+            <strong>Interview:</strong>
+            Scheduled
+        </p>
+    </div>
+
 </div>
 
 
@@ -1390,9 +1418,21 @@ onMounted(() => {
         {{ application.remarks || "None" }}
     </p>
 
-    <p v-if="application.status === 'Selected'">
+    <p v-if="application.status === 'Offer'">
         <strong>Final Result:</strong>
-        Selected
+        Offer Issued
+    </p>
+
+    <button
+        v-if="application.status === 'Offer'"
+        @click="markAsPlaced(application)"
+    >
+        Mark as Placed
+    </button>
+
+    <p v-else-if="application.status === 'Placed'">
+        <strong>Final Result:</strong>
+        Placed
     </p>
 
     <p v-else-if="application.status === 'Rejected'">

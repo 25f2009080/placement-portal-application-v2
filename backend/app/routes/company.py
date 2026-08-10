@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime,UTC
 import os
 
 from flask import Blueprint, request, jsonify, send_from_directory
@@ -847,12 +847,18 @@ def schedule_interview(application_id):
         data.get("interview_notes") or ""
     ).strip()
 
+    application.status = "Interview"
+
     try:
         db.session.commit()
 
         return jsonify({
             "success": True,
             "message": "Interview scheduled successfully",
+            "application": {
+                "id": application.id,
+                "status": application.status
+            },
             "interview": {
                 "datetime": (
                     application.interview_datetime.isoformat()
@@ -904,12 +910,12 @@ def update_final_application_status(application_id):
             "message": "Application not found"
         }), 404
 
-    if application.status != "Shortlisted":
+    if application.status != "Interview":
         return jsonify({
             "success": False,
             "message": (
                 "Final decision can only be made "
-                "for shortlisted applicants"
+                "after the interview stage"
             )
         }), 400
 
@@ -922,14 +928,19 @@ def update_final_application_status(application_id):
             )
         }), 400
 
-    # Selected requests arrive as multipart/form-data because
-    # they contain the offer-letter PDF.
+
     if request.content_type and request.content_type.startswith(
         "multipart/form-data"
     ):
         new_status = request.form.get("status")
-        remarks = (request.form.get("remarks") or "").strip()
-        offer_letter = request.files.get("offer_letter")
+        remarks = (
+            request.form.get("remarks") or ""
+        ).strip()
+
+        offer_letter = request.files.get(
+            "offer_letter"
+        )
+
     else:
         data = request.get_json(silent=True)
 
@@ -940,36 +951,35 @@ def update_final_application_status(application_id):
             }), 400
 
         new_status = data["status"]
-        remarks = (data.get("remarks") or "").strip()
+
+        remarks = (
+            data.get("remarks") or ""
+        ).strip()
+
         offer_letter = None
 
-    if new_status not in ["Selected", "Rejected"]:
+    if new_status not in ["Offer", "Rejected"]:
         return jsonify({
             "success": False,
             "message": (
-                "Status must be Selected or Rejected"
+                "Status must be Offer or Rejected"
             )
         }), 400
 
-    if new_status == "Rejected" and not remarks:
-        return jsonify({
-            "success": False,
-            "message": (
-                "Feedback is required when rejecting "
-                "an applicant"
-            )
-        }), 400
-
-    # ---------------------------------------------------------
-    # REJECTION
-    # ---------------------------------------------------------
 
     if new_status == "Rejected":
 
-        application.status = "Rejected"
+        if not remarks:
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Feedback is required when rejecting "
+                    "an applicant"
+                )
+            }), 400
 
-        if remarks:
-            application.remarks = remarks
+        application.status = "Rejected"
+        application.remarks = remarks
 
         try:
             db.session.commit()
@@ -994,16 +1004,13 @@ def update_final_application_status(application_id):
                 )
             }), 500
 
-    # ---------------------------------------------------------
-    # SELECTION + OFFER LETTER
-    # ---------------------------------------------------------
 
     if offer_letter is None or not offer_letter.filename:
         return jsonify({
             "success": False,
             "message": (
-                "Offer letter PDF is required when "
-                "selecting an applicant"
+                "Offer letter PDF is required "
+                "when making an offer"
             )
         }), 400
 
@@ -1026,7 +1033,28 @@ def update_final_application_status(application_id):
             "message": "Only PDF offer letters are allowed"
         }), 400
 
-    filename = secure_filename(original_filename)
+    try:
+        offer_letter.stream.seek(0, os.SEEK_END)
+        file_size = offer_letter.stream.tell()
+        offer_letter.stream.seek(0)
+
+    except (OSError, AttributeError):
+        return jsonify({
+            "success": False,
+            "message": "Could not validate offer letter size"
+        }), 400
+
+    if file_size > 5 * 1024 * 1024:
+        return jsonify({
+            "success": False,
+            "message": (
+                "Offer letter must be smaller than 5 MB"
+            )
+        }), 400
+
+    filename = secure_filename(
+        original_filename
+    )
 
     if not filename:
         return jsonify({
@@ -1041,7 +1069,8 @@ def update_final_application_status(application_id):
         return jsonify({
             "success": False,
             "message": (
-                "Student associated with application not found"
+                "Student associated with application "
+                "not found"
             )
         }), 404
 
@@ -1053,7 +1082,8 @@ def update_final_application_status(application_id):
         return jsonify({
             "success": False,
             "message": (
-                "Placement already exists for this application"
+                "An offer or placement already exists "
+                "for this application"
             )
         }), 409
 
@@ -1062,15 +1092,12 @@ def update_final_application_status(application_id):
             "success": False,
             "message": (
                 "Set a salary for this placement drive "
-                "before selecting the applicant"
+                "before making an offer"
             )
         }), 400
 
     joining_date = None
 
-    # Keep joining_date in the Placement model for future
-    # placement reports. It is optional and is not required
-    # for selecting the applicant.
     if request.form.get("joining_date"):
         try:
             joining_date = datetime.strptime(
@@ -1086,10 +1113,18 @@ def update_final_application_status(application_id):
                 )
             }), 400
 
-    upload_folder = current_app.config["UPLOAD_FOLDER"]
-    os.makedirs(upload_folder, exist_ok=True)
+    upload_folder = current_app.config[
+        "UPLOAD_FOLDER"
+    ]
 
-    base_name, file_extension = os.path.splitext(filename)
+    os.makedirs(
+        upload_folder,
+        exist_ok=True
+    )
+
+    base_name, file_extension = os.path.splitext(
+        filename
+    )
 
     filename = (
         f"offer_{application.id}_{base_name}"
@@ -1112,10 +1147,11 @@ def update_final_application_status(application_id):
             position=job.title,
             salary=job.salary,
             joining_date=joining_date,
+            placed_at=None,
             offer_letter=filename
         )
 
-        application.status = "Selected"
+        application.status = "Offer"
         application.remarks = remarks
 
         db.session.add(placement)
@@ -1124,8 +1160,151 @@ def update_final_application_status(application_id):
         return jsonify({
             "success": True,
             "message": (
-                "Applicant selected and offer letter uploaded successfully"
+                "Offer issued and offer letter uploaded successfully"
             ),
+            "application": {
+                "id": application.id,
+                "status": application.status,
+                "remarks": application.remarks
+            },
+            "placement": {
+                "id": placement.id,
+                "position": placement.position,
+                "salary": placement.salary,
+                "joining_date": (
+                    placement.joining_date.isoformat()
+                    if placement.joining_date
+                    else None
+                ),
+                "placed_at": None,
+                "offer_letter": placement.offer_letter
+            }
+        }), 200
+
+    except Exception:
+        db.session.rollback()
+
+        if os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+            except OSError:
+                pass
+
+        return jsonify({
+            "success": False,
+            "message": (
+                "Failed to create offer or upload "
+                "offer letter"
+            )
+        }), 500
+
+
+@company_bp.route(
+    "/api/company/applications/<int:application_id>/placed",
+    methods=["PUT"]
+)
+@jwt_required()
+def mark_application_placed(application_id):
+
+    user, company, error = get_current_company()
+
+    if error:
+        return error
+
+    application = db.session.get(
+        Application,
+        application_id
+    )
+
+    if not application:
+        return jsonify({
+            "success": False,
+            "message": "Application not found"
+        }), 404
+
+    if (
+        not application.job
+        or application.job.company_id != company.id
+    ):
+        return jsonify({
+            "success": False,
+            "message": "Application not found"
+        }), 404
+
+    if application.status != "Offer":
+        return jsonify({
+            "success": False,
+            "message": (
+                "Only applicants with an active offer "
+                "can be marked as placed"
+            )
+        }), 400
+
+    placement = Placement.query.filter_by(
+        application_id=application.id
+    ).first()
+
+    if not placement:
+        return jsonify({
+            "success": False,
+            "message": (
+                "Placement record not found for this offer"
+            )
+        }), 404
+
+
+    if placement.placed_at:
+        application.status = "Placed"
+
+        try:
+            db.session.commit()
+
+            return jsonify({
+                "success": True,
+                "message": "Applicant is already placed",
+                "application": {
+                    "id": application.id,
+                    "status": application.status,
+                    "remarks": application.remarks
+                },
+                "placement": {
+                    "id": placement.id,
+                    "position": placement.position,
+                    "salary": placement.salary,
+                    "joining_date": (
+                        placement.joining_date.isoformat()
+                        if placement.joining_date
+                        else None
+                    ),
+                    "placed_at": (
+                        placement.placed_at.isoformat()
+                        if placement.placed_at
+                        else None
+                    ),
+                    "offer_letter": placement.offer_letter
+                }
+            }), 200
+
+        except Exception:
+            db.session.rollback()
+
+            return jsonify({
+                "success": False,
+                "message": (
+                    "Failed to synchronize placement status"
+                )
+            }), 500
+
+
+    application.status = "Placed"
+    placement.placed_at = datetime.now(UTC)
+
+    try:
+        db.session.commit()
+
+        return jsonify({
+            "success": True,
+            "message": "Applicant marked as placed successfully",
             "application": {
                 "id": application.id,
                 "status": application.status,
@@ -1152,16 +1331,7 @@ def update_final_application_status(application_id):
     except Exception:
         db.session.rollback()
 
-        if os.path.exists(file_path):
-            try:
-                os.remove(file_path)
-            except OSError:
-                pass
-
         return jsonify({
             "success": False,
-            "message": (
-                "Failed to create placement or upload offer letter"
-            )
+            "message": "Failed to mark applicant as placed"
         }), 500
-

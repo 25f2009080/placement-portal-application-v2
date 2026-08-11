@@ -1,15 +1,11 @@
 <script setup>
-
 import { ref, onMounted } from "vue";
 import { useRouter } from "vue-router";
 
 import api from "../services/api";
 import { logout } from "../services/authService";
 
-
 const router = useRouter();
-
-
 
 const loading = ref(true);
 const error = ref("");
@@ -31,41 +27,28 @@ const studentSearch = ref("");
 
 const selectedCompany = ref(null);
 
-
-
 async function loadDashboard() {
-
     loading.value = true;
     error.value = "";
 
     try {
-
-        await Promise.all([
-            loadStats(),
-            loadCompanies(),
-            loadStudents(),
-            loadJobs(),
-            loadApplications()
-        ]);
-
+        await loadStats();
+        await loadCompanies();
+        await loadStudents();
+        await loadJobs();
+        await loadApplications();
     } catch (err) {
-
         console.error(err);
 
         error.value =
             err.response?.data?.message ||
             "Failed to load admin dashboard.";
-
     } finally {
-
         loading.value = false;
     }
 }
 
-
-
 async function loadStats() {
-
     const response = await api.get(
         "/api/admin/dashboard"
     );
@@ -73,9 +56,7 @@ async function loadStats() {
     stats.value = response.data.stats;
 }
 
-
 async function loadCompanies() {
-
     const response = await api.get(
         "/api/admin/companies",
         {
@@ -88,33 +69,23 @@ async function loadCompanies() {
     companies.value = response.data.companies;
 }
 
-
 async function searchCompanies() {
-
     try {
-
         await loadCompanies();
-
     } catch (err) {
-
         console.error(err);
-
     }
 }
 
-
 async function approveCompany(company) {
-
     try {
-
         await api.put(
             `/api/admin/company/${company.id}/approve`
         );
 
         await loadCompanies();
-
+        await loadStats();
     } catch (err) {
-
         alert(
             err.response?.data?.message ||
             "Failed to approve company."
@@ -123,7 +94,6 @@ async function approveCompany(company) {
 }
 
 async function revokeCompanyApproval(company) {
-
     if (!confirm(
         `Revoke approval for ${company.name}?`
     )) {
@@ -131,15 +101,13 @@ async function revokeCompanyApproval(company) {
     }
 
     try {
-
         await api.put(
             `/api/admin/company/${company.id}/revoke`
         );
 
         await loadCompanies();
-
+        await loadStats();
     } catch (err) {
-
         alert(
             err.response?.data?.message ||
             "Failed to revoke company approval."
@@ -148,7 +116,6 @@ async function revokeCompanyApproval(company) {
 }
 
 async function deactivateCompany(company) {
-
     if (!confirm(
         `Deactivate ${company.name}?`
     )) {
@@ -156,15 +123,13 @@ async function deactivateCompany(company) {
     }
 
     try {
-
         await api.put(
             `/api/admin/company/${company.id}/deactivate`
         );
 
         await loadCompanies();
-
+        await loadJobs();
     } catch (err) {
-
         alert(
             err.response?.data?.message ||
             "Failed to deactivate company."
@@ -172,19 +137,14 @@ async function deactivateCompany(company) {
     }
 }
 
-
 async function activateCompany(company) {
-
     try {
-
         await api.put(
             `/api/admin/company/${company.id}/activate`
         );
 
         await loadCompanies();
-
     } catch (err) {
-
         alert(
             err.response?.data?.message ||
             "Failed to activate company."
@@ -192,17 +152,15 @@ async function activateCompany(company) {
     }
 }
 
-async function viewCompanyDetails(company) {
+function viewCompanyDetails(company) {
     selectedCompany.value = company;
 }
 
-async function closeCompanyDetails() {
+function closeCompanyDetails() {
     selectedCompany.value = null;
 }
 
-
 async function loadStudents() {
-
     const response = await api.get(
         "/api/admin/students",
         {
@@ -215,23 +173,15 @@ async function loadStudents() {
     students.value = response.data.students;
 }
 
-
 async function searchStudents() {
-
     try {
-
         await loadStudents();
-
     } catch (err) {
-
         console.error(err);
-
     }
 }
 
-
 async function deactivateStudent(student) {
-
     if (!confirm(
         `Blacklist ${student.name}?`
     )) {
@@ -239,15 +189,12 @@ async function deactivateStudent(student) {
     }
 
     try {
-
         await api.put(
             `/api/admin/student/${student.id}/deactivate`
         );
 
         await loadStudents();
-
     } catch (err) {
-
         alert(
             err.response?.data?.message ||
             "Failed to blacklist student."
@@ -255,19 +202,14 @@ async function deactivateStudent(student) {
     }
 }
 
-
 async function activateStudent(student) {
-
     try {
-
         await api.put(
             `/api/admin/student/${student.id}/activate`
         );
 
         await loadStudents();
-
     } catch (err) {
-
         alert(
             err.response?.data?.message ||
             "Failed to activate student."
@@ -275,10 +217,7 @@ async function activateStudent(student) {
     }
 }
 
-
-
 async function loadJobs() {
-
     const response = await api.get(
         "/api/admin/jobs"
     );
@@ -286,19 +225,14 @@ async function loadJobs() {
     jobs.value = response.data.jobs;
 }
 
-
 async function approveJob(job) {
-
     try {
-
         await api.put(
             `/api/admin/job/${job.id}/approve`
         );
 
         await loadJobs();
-
     } catch (err) {
-
         alert(
             err.response?.data?.message ||
             "Failed to approve job."
@@ -307,7 +241,6 @@ async function approveJob(job) {
 }
 
 async function rejectJob(job) {
-
     if (!confirm(
         `Reject "${job.title}"?`
     )) {
@@ -315,15 +248,12 @@ async function rejectJob(job) {
     }
 
     try {
-
         await api.put(
             `/api/admin/job/${job.id}/reject`
         );
 
         await loadJobs();
-
     } catch (err) {
-
         alert(
             err.response?.data?.message ||
             "Failed to reject job."
@@ -331,9 +261,7 @@ async function rejectJob(job) {
     }
 }
 
-
 async function deactivateJob(job) {
-
     if (!confirm(
         `Deactivate "${job.title}"?`
     )) {
@@ -341,15 +269,12 @@ async function deactivateJob(job) {
     }
 
     try {
-
         await api.put(
             `/api/admin/job/${job.id}/deactivate`
         );
 
         await loadJobs();
-
     } catch (err) {
-
         alert(
             err.response?.data?.message ||
             "Failed to deactivate job."
@@ -357,50 +282,66 @@ async function deactivateJob(job) {
     }
 }
 
-
 async function activateJob(job) {
-
-    if (!confirm(
-        `Reactivate "${job.title}"?`
-    )) {
-        return;
-    }
-
     try {
-
         await api.put(
             `/api/admin/job/${job.id}/activate`
         );
 
         await loadJobs();
-
     } catch (err) {
-
         alert(
             err.response?.data?.message ||
-            "Failed to reactivate job."
+            "Failed to activate job."
         );
     }
 }
 
-
 function getJobStatusClass(status) {
-
     if (status === "Active") {
-        return "active";
+        return "bg-success-subtle text-success-emphasis";
     }
 
     if (status === "Pending") {
-        return "pending";
+        return "bg-warning-subtle text-warning-emphasis";
     }
 
-    return "inactive";
+    if (status === "Rejected") {
+        return "bg-danger-subtle text-danger-emphasis";
+    }
+
+    if (status === "Closed") {
+        return "bg-secondary-subtle text-secondary-emphasis";
+    }
+
+    return "bg-danger-subtle text-danger-emphasis";
 }
 
+function getApplicationStatusClass(status) {
+    if (status === "Applied") {
+        return "bg-primary-subtle text-primary-emphasis";
+    }
 
+    if (status === "Shortlisted") {
+        return "bg-info-subtle text-info-emphasis";
+    }
+
+    if (
+        status === "Offer" ||
+        status === "Placed" ||
+        status === "Selected"
+    ) {
+        return "bg-success-subtle text-success-emphasis";
+    }
+
+    if (status === "Rejected") {
+        return "bg-danger-subtle text-danger-emphasis";
+    }
+
+    return "bg-secondary-subtle text-secondary-emphasis";
+}
 
 async function loadApplications() {
-
     const response = await api.get(
         "/api/admin/applications"
     );
@@ -408,10 +349,7 @@ async function loadApplications() {
     applications.value = response.data.applications;
 }
 
-
-
 function formatDate(date) {
-
     if (!date) {
         return "-";
     }
@@ -419,879 +357,1174 @@ function formatDate(date) {
     return new Date(date).toLocaleString();
 }
 
-
 function handleLogout() {
-
     logout();
-
     router.push("/login");
 }
-
 
 onMounted(() => {
     loadDashboard();
 });
-
 </script>
 
-
 <template>
-    <div class="admin-dashboard">
+    <div class="admin-dashboard min-vh-100">
 
-        <div class="header">
-            <div>
-                <h1>Admin Dashboard</h1>
-                <p>Manage students, companies, jobs and applications.</p>
+        <nav class="navbar navbar-dark bg-dark shadow-sm">
+            <div class="container-fluid px-3 px-lg-4">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="dashboard-logo">
+                        <i class="bi bi-grid-1x2-fill"></i>
+                    </div>
+
+                    <div>
+                        <div class="navbar-brand mb-0 fw-semibold">
+                            Placement Portal
+                        </div>
+
+                        <div class="navbar-subtitle">
+                            Administration
+                        </div>
+                    </div>
+                </div>
+
+                <button
+                    class="btn btn-outline-light btn-sm px-3"
+                    @click="handleLogout"
+                >
+                    <i class="bi bi-box-arrow-right me-1"></i>
+                    Logout
+                </button>
+            </div>
+        </nav>
+
+        <main class="container-fluid px-3 px-lg-4 py-4">
+
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-end gap-3 mb-4">
+                <div>
+                    <div class="text-uppercase small fw-semibold text-primary mb-1">
+                        Administration
+                    </div>
+
+                    <h1 class="display-6 fw-bold mb-1">
+                        Admin Dashboard
+                    </h1>
+
+                    <p class="text-secondary mb-0">
+                        Manage students, companies, job postings and applications.
+                    </p>
+                </div>
+
+                <button
+                    class="btn btn-light border shadow-sm"
+                    @click="loadDashboard"
+                    :disabled="loading"
+                >
+                    <i class="bi bi-arrow-clockwise me-1"></i>
+                    Refresh
+                </button>
             </div>
 
-            <button class="logout-btn" @click="handleLogout">
-                Logout
-            </button>
-        </div>
-
-
-        <div v-if="error" class="error">
-            {{ error }}
-        </div>
-
-
-        <div v-if="loading" class="loading">
-            Loading dashboard...
-        </div>
-
-
-        <div v-else>
-
-
-            <div class="stats-grid">
-
-                <div class="stat-card">
-                    <h3>{{ stats.total_students }}</h3>
-                    <p>Total Students</p>
-                </div>
-
-                <div class="stat-card">
-                    <h3>{{ stats.total_companies }}</h3>
-                    <p>Total Companies</p>
-                </div>
-
-                <div class="stat-card">
-                    <h3>{{ stats.total_jobs }}</h3>
-                    <p>Total Job Postings</p>
-                </div>
-
-                <div class="stat-card">
-                    <h3>{{ stats.total_applications }}</h3>
-                    <p>Total Applications</p>
-                </div>
-
-            </div>
-
-
-
-            <section class="section">
-
-                <div class="section-header">
-                    <h2>Companies</h2>
-
-                    <input
-                        v-model="companySearch"
-                        @input="searchCompanies"
-                        type="text"
-                        placeholder="Search by name or industry"
-                    />
-                </div>
-
-                <div v-if="companies.length === 0" class="empty">
-                    No companies found.
-                </div>
-
-                <div v-else class="table-container">
-
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Company ID</th>
-                                <th>Name</th>
-                                <th>Industry</th>
-                                <th>Location</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            <tr
-                                v-for="company in companies"
-                                :key="company.id"
-                            >
-                                <td>{{ company.company_id }}</td>
-                                <td>{{ company.name }}</td>
-                                <td>{{ company.industry }}</td>
-                                <td>{{ company.location }}</td>
-
-                                <td>
-                                    <span
-                                        v-if="!company.is_active"
-                                        class="status inactive"
-                                    >
-                                        Deactivated
-                                    </span>
-
-                                    <span
-                                        v-else-if="!company.approved"
-                                        class="status pending"
-                                    >
-                                        Pending
-                                    </span>
-
-                                    <span
-                                        v-else
-                                        class="status active"
-                                    >
-                                        Approved
-                                    </span>
-                                </td>
-
-                                <td>
-
-                                    <button
-                                        class="action-btn details"
-                                        @click="viewCompanyDetails(company)"
-                                    >
-                                        View Details
-                                    </button>
-
-                                    <button
-                                        v-if="!company.approved"
-                                        class="action-btn approve"
-                                        @click="approveCompany(company)"
-                                    >
-                                        Approve
-                                    </button>
-
-                                    <button
-                                        v-else
-                                        class="action-btn warning"
-                                        @click="revokeCompanyApproval(company)"
-                                    >
-                                        Revoke Approval
-                                    </button>
-
-                                    <button
-                                        v-if="company.is_active"
-                                        class="action-btn danger"
-                                        @click="deactivateCompany(company)"
-                                    >
-                                        Deactivate
-                                    </button>
-
-                                    <button
-                                        v-else
-                                        class="action-btn activate"
-                                        @click="activateCompany(company)"
-                                    >
-                                        Activate
-                                    </button>
-
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                </div>
-
-            </section>
-
-
-
-            <section class="section">
-
-                <div class="section-header">
-                    <h2>Students</h2>
-
-                    <input
-                        v-model="studentSearch"
-                        @input="searchStudents"
-                        type="text"
-                        placeholder="Search by name, ID or contact"
-                    />
-                </div>
-
-                <div v-if="students.length === 0" class="empty">
-                    No students found.
-                </div>
-
-                <div v-else class="table-container">
-
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Student ID</th>
-                                <th>Name</th>
-                                <th>Department</th>
-                                <th>Contact</th>
-                                <th>CGPA</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            <tr
-                                v-for="student in students"
-                                :key="student.id"
-                            >
-                                <td>{{ student.student_id }}</td>
-                                <td>{{ student.name }}</td>
-                                <td>{{ student.department }}</td>
-                                <td>{{ student.phone }}</td>
-                                <td>{{ student.cgpa ?? "-" }}</td>
-
-                                <td>
-                                    <span
-                                        v-if="student.is_active"
-                                        class="status active"
-                                    >
-                                        Active
-                                    </span>
-
-                                    <span
-                                        v-else
-                                        class="status inactive"
-                                    >
-                                        Blacklisted
-                                    </span>
-                                </td>
-
-                                <td>
-
-                                    <button
-                                        v-if="student.is_active"
-                                        class="action-btn danger"
-                                        @click="deactivateStudent(student)"
-                                    >
-                                        Blacklist
-                                    </button>
-
-                                    <button
-                                        v-else
-                                        class="action-btn activate"
-                                        @click="activateStudent(student)"
-                                    >
-                                        Activate
-                                    </button>
-
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                </div>
-
-            </section>
-
-
-
-            <section class="section">
-
-                <div class="section-header">
-                    <h2>Job Postings</h2>
-                </div>
-
-                <div v-if="jobs.length === 0" class="empty">
-                    No job postings found.
-                </div>
-
-                <div v-else class="table-container">
-
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Title</th>
-                                <th>Company</th>
-                                <th>Location</th>
-                                <th>Deadline</th>
-                                <th>Applications</th>
-                                <th>Status</th>
-                                <th>Action</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            <tr
-                                v-for="job in jobs"
-                                :key="job.id"
-                            >
-                                <td>{{ job.title }}</td>
-
-                                <td>
-                                    {{ job.company?.name || "-" }}
-                                </td>
-
-                                <td>{{ job.location }}</td>
-
-                                <td>{{ job.deadline }}</td>
-
-                                <td>{{ job.application_count }}</td>
-
-                                <td>
-                                    <span
-                                        class="status"
-                                        :class="getJobStatusClass(job.status)"
-                                    >
-                                        {{ job.status }}
-                                    </span>
-                                </td>
-
-                                <td>
-
-                                    <button
-                                        v-if="job.status === 'Pending'"
-                                        class="action-btn approve"
-                                        @click="approveJob(job)"
-                                    >
-                                        Approve
-                                    </button>
-
-                                    <button
-                                        v-if="job.status === 'Pending'"
-                                        class="action-btn danger"
-                                        @click="rejectJob(job)"
-                                    >
-                                        Reject
-                                    </button>
-
-                                    <button
-                                        v-if="
-                                            job.status !== 'Inactive' &&
-                                            job.status !== 'Rejected'
-                                        "
-                                        class="action-btn danger"
-                                        @click="deactivateJob(job)"
-                                    >
-                                        Deactivate
-                                    </button>
-
-                                    <button
-                                        v-if="job.status === 'Inactive'"
-                                        class="action-btn activate"
-                                        @click="activateJob(job)"
-                                    >
-                                        Reactivate
-                                    </button>
-
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                </div>
-
-            </section>
-
-
-
-            <section class="section">
-
-                <div class="section-header">
-                    <h2>Applications</h2>
-                </div>
-
-                <div v-if="applications.length === 0" class="empty">
-                    No applications found.
-                </div>
-
-                <div v-else class="table-container">
-
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Student</th>
-                                <th>Student ID</th>
-                                <th>Job</th>
-                                <th>Company</th>
-                                <th>Status</th>
-                                <th>Applied At</th>
-                            </tr>
-                        </thead>
-
-                        <tbody>
-                            <tr
-                                v-for="application in applications"
-                                :key="application.id"
-                            >
-                                <td>
-                                    {{ application.student?.name || "-" }}
-                                </td>
-
-                                <td>
-                                    {{ application.student?.student_id || "-" }}
-                                </td>
-
-                                <td>
-                                    {{ application.job?.title || "-" }}
-                                </td>
-
-                                <td>
-                                    {{ application.job?.company || "-" }}
-                                </td>
-
-                                <td>
-                                    {{ application.status }}
-                                </td>
-
-                                <td>
-                                    {{ formatDate(application.applied_at) }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-
-                </div>
-
-            </section>
-
-        </div>
-
-    </div>
-
-    <div
-    v-if="selectedCompany"
-    class="details-overlay"
-    @click.self="closeCompanyDetails"
->
-
-    <div class="details-card">
-
-        <div class="details-header">
-            <h2>Company Details</h2>
-
-            <button
-                class="close-btn"
-                @click="closeCompanyDetails"
+            <div
+                v-if="error"
+                class="alert alert-danger d-flex align-items-center gap-2 shadow-sm"
+                role="alert"
             >
-                ×
-            </button>
-        </div>
-
-
-        <div class="details-content">
-
-            <div class="detail-row">
-                <strong>Company ID:</strong>
-                <span>{{ selectedCompany.company_id }}</span>
+                <i class="bi bi-exclamation-triangle-fill"></i>
+                <div>{{ error }}</div>
             </div>
 
-            <div class="detail-row">
-                <strong>Company Name:</strong>
-                <span>{{ selectedCompany.name }}</span>
-            </div>
-
-            <div class="detail-row">
-                <strong>Industry:</strong>
-                <span>{{ selectedCompany.industry }}</span>
-            </div>
-
-            <div class="detail-row">
-                <strong>Location:</strong>
-                <span>{{ selectedCompany.location }}</span>
-            </div>
-
-            <div class="detail-row">
-                <strong>Website:</strong>
-
-                <span v-if="selectedCompany.website">
-                    <a
-                        :href="selectedCompany.website"
-                        target="_blank"
-                    >
-                        {{ selectedCompany.website }}
-                    </a>
-                </span>
-
-                <span v-else>
-                    -
-                </span>
-            </div>
-
-            <div class="detail-row">
-                <strong>Description:</strong>
-                <span>
-                    {{ selectedCompany.description || "-" }}
-                </span>
-            </div>
-
-
-            <hr>
-
-
-            <h3>HR Contact</h3>
-
-            <div class="detail-row">
-                <strong>HR Name:</strong>
-                <span>{{ selectedCompany.hr_name }}</span>
-            </div>
-
-            <div class="detail-row">
-                <strong>HR Email:</strong>
-
-                <span>
-                    <a
-                        :href="`mailto:${selectedCompany.hr_email}`"
-                    >
-                        {{ selectedCompany.hr_email }}
-                    </a>
-                </span>
-            </div>
-
-
-            <hr>
-
-
-            <div class="detail-row">
-                <strong>Status:</strong>
-
-                <span
-                    v-if="!selectedCompany.is_active"
-                    class="status inactive"
-                >
-                    Deactivated
-                </span>
-
-                <span
-                    v-else-if="!selectedCompany.approved"
-                    class="status pending"
-                >
-                    Pending Approval
-                </span>
-
-                <span
-                    v-else
-                    class="status active"
-                >
-                    Approved & Active
-                </span>
-            </div>
-
-        </div>
-
-
-        <div class="details-footer">
-
-            <button
-                class="action-btn"
-                @click="closeCompanyDetails"
+            <div
+                v-if="loading"
+                class="card border-0 shadow-sm"
             >
-                Close
-            </button>
+                <div class="card-body py-5 text-center">
+                    <div
+                        class="spinner-border text-primary mb-3"
+                        role="status"
+                    ></div>
 
+                    <div class="fw-semibold">
+                        Loading dashboard...
+                    </div>
+
+                    <div class="text-secondary small mt-1">
+                        Fetching the latest portal information.
+                    </div>
+                </div>
+            </div>
+
+            <template v-else>
+
+                <div class="row g-3 mb-4">
+
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="card stat-card border-0 shadow-sm h-100">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="text-secondary small fw-semibold">
+                                            TOTAL STUDENTS
+                                        </div>
+
+                                        <div class="display-6 fw-bold mt-2">
+                                            {{ stats.total_students }}
+                                        </div>
+                                    </div>
+
+                                    <div class="stat-icon bg-primary-subtle text-primary">
+                                        <i class="bi bi-mortarboard-fill"></i>
+                                    </div>
+                                </div>
+
+                                <div class="small text-secondary mt-3">
+                                    Registered students
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="card stat-card border-0 shadow-sm h-100">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="text-secondary small fw-semibold">
+                                            TOTAL COMPANIES
+                                        </div>
+
+                                        <div class="display-6 fw-bold mt-2">
+                                            {{ stats.total_companies }}
+                                        </div>
+                                    </div>
+
+                                    <div class="stat-icon bg-success-subtle text-success">
+                                        <i class="bi bi-buildings-fill"></i>
+                                    </div>
+                                </div>
+
+                                <div class="small text-secondary mt-3">
+                                    Registered companies
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="card stat-card border-0 shadow-sm h-100">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="text-secondary small fw-semibold">
+                                            JOB POSTINGS
+                                        </div>
+
+                                        <div class="display-6 fw-bold mt-2">
+                                            {{ stats.total_jobs }}
+                                        </div>
+                                    </div>
+
+                                    <div class="stat-icon bg-warning-subtle text-warning">
+                                        <i class="bi bi-briefcase-fill"></i>
+                                    </div>
+                                </div>
+
+                                <div class="small text-secondary mt-3">
+                                    Placement opportunities
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-12 col-sm-6 col-xl-3">
+                        <div class="card stat-card border-0 shadow-sm h-100">
+                            <div class="card-body p-4">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <div class="text-secondary small fw-semibold">
+                                            APPLICATIONS
+                                        </div>
+
+                                        <div class="display-6 fw-bold mt-2">
+                                            {{ stats.total_applications }}
+                                        </div>
+                                    </div>
+
+                                    <div class="stat-icon bg-info-subtle text-info">
+                                        <i class="bi bi-file-earmark-text-fill"></i>
+                                    </div>
+                                </div>
+
+                                <div class="small text-secondary mt-3">
+                                    Submitted applications
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <section class="card dashboard-section border-0 shadow-sm mb-4">
+
+                    <div class="card-header bg-white border-0 p-4">
+                        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="bi bi-buildings text-primary"></i>
+                                    <h2 class="h5 fw-bold mb-0">
+                                        Companies
+                                    </h2>
+                                </div>
+
+                                <p class="text-secondary small mb-0">
+                                    Review and manage registered companies.
+                                </p>
+                            </div>
+
+                            <div class="search-box">
+                                <i class="bi bi-search"></i>
+
+                                <input
+                                    v-model="companySearch"
+                                    @input="searchCompanies"
+                                    type="text"
+                                    class="form-control"
+                                    placeholder="Search name or industry"
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="companies.length === 0"
+                        class="card-body pt-0"
+                    >
+                        <div class="empty-state">
+                            <i class="bi bi-buildings"></i>
+                            <div class="fw-semibold mt-2">
+                                No companies found
+                            </div>
+                            <div class="small text-secondary">
+                                Try a different search term.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-else
+                        class="table-responsive"
+                    >
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Company ID</th>
+                                    <th>Name</th>
+                                    <th>Industry</th>
+                                    <th>Location</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-4">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr
+                                    v-for="company in companies"
+                                    :key="company.id"
+                                >
+                                    <td class="ps-4">
+                                        <span class="font-monospace small">
+                                            {{ company.company_id }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <div class="fw-semibold">
+                                            {{ company.name }}
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <span class="text-secondary">
+                                            {{ company.industry || "-" }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        {{ company.location || "-" }}
+                                    </td>
+
+                                    <td>
+                                        <span
+                                            v-if="!company.is_active"
+                                            class="badge rounded-pill bg-danger-subtle text-danger-emphasis"
+                                        >
+                                            Deactivated
+                                        </span>
+
+                                        <span
+                                            v-else-if="!company.approved"
+                                            class="badge rounded-pill bg-warning-subtle text-warning-emphasis"
+                                        >
+                                            Pending
+                                        </span>
+
+                                        <span
+                                            v-else
+                                            class="badge rounded-pill bg-success-subtle text-success-emphasis"
+                                        >
+                                            Approved
+                                        </span>
+                                    </td>
+
+                                    <td class="text-end pe-4">
+                                        <div class="d-flex flex-wrap justify-content-end gap-1">
+
+                                            <button
+                                                class="btn btn-sm btn-outline-primary"
+                                                @click="viewCompanyDetails(company)"
+                                            >
+                                                <i class="bi bi-eye me-1"></i>
+                                                Details
+                                            </button>
+
+                                            <button
+                                                v-if="!company.approved"
+                                                class="btn btn-sm btn-success"
+                                                @click="approveCompany(company)"
+                                            >
+                                                <i class="bi bi-check-lg me-1"></i>
+                                                Approve
+                                            </button>
+
+                                            <button
+                                                v-else
+                                                class="btn btn-sm btn-outline-warning"
+                                                @click="revokeCompanyApproval(company)"
+                                            >
+                                                <i class="bi bi-arrow-counterclockwise me-1"></i>
+                                                Revoke
+                                            </button>
+
+                                            <button
+                                                v-if="company.is_active"
+                                                class="btn btn-sm btn-outline-danger"
+                                                @click="deactivateCompany(company)"
+                                            >
+                                                <i class="bi bi-person-x me-1"></i>
+                                                Deactivate
+                                            </button>
+
+                                            <button
+                                                v-else
+                                                class="btn btn-sm btn-outline-success"
+                                                @click="activateCompany(company)"
+                                            >
+                                                <i class="bi bi-person-check me-1"></i>
+                                                Activate
+                                            </button>
+
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </section>
+
+                <section class="card dashboard-section border-0 shadow-sm mb-4">
+
+                    <div class="card-header bg-white border-0 p-4">
+                        <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
+                            <div>
+                                <div class="d-flex align-items-center gap-2 mb-1">
+                                    <i class="bi bi-mortarboard text-primary"></i>
+                                    <h2 class="h5 fw-bold mb-0">
+                                        Students
+                                    </h2>
+                                </div>
+
+                                <p class="text-secondary small mb-0">
+                                    Search and manage student accounts.
+                                </p>
+                            </div>
+
+                            <div class="search-box">
+                                <i class="bi bi-search"></i>
+
+                                <input
+                                    v-model="studentSearch"
+                                    @input="searchStudents"
+                                    type="text"
+                                    class="form-control"
+                                    placeholder="Search name, ID or contact"
+                                >
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="students.length === 0"
+                        class="card-body pt-0"
+                    >
+                        <div class="empty-state">
+                            <i class="bi bi-people"></i>
+                            <div class="fw-semibold mt-2">
+                                No students found
+                            </div>
+                            <div class="small text-secondary">
+                                Try a different search term.
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-else
+                        class="table-responsive"
+                    >
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Student ID</th>
+                                    <th>Name</th>
+                                    <th>Department</th>
+                                    <th>Contact</th>
+                                    <th>CGPA</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-4">Action</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr
+                                    v-for="student in students"
+                                    :key="student.id"
+                                >
+                                    <td class="ps-4">
+                                        <span class="font-monospace small">
+                                            {{ student.student_id }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <div class="fw-semibold">
+                                            {{ student.name }}
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        {{ student.department || "-" }}
+                                    </td>
+
+                                    <td>
+                                        {{ student.phone || "-" }}
+                                    </td>
+
+                                    <td>
+                                        <span class="fw-semibold">
+                                            {{ student.cgpa ?? "-" }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span
+                                            v-if="student.is_active"
+                                            class="badge rounded-pill bg-success-subtle text-success-emphasis"
+                                        >
+                                            Active
+                                        </span>
+
+                                        <span
+                                            v-else
+                                            class="badge rounded-pill bg-danger-subtle text-danger-emphasis"
+                                        >
+                                            Blacklisted
+                                        </span>
+                                    </td>
+
+                                    <td class="text-end pe-4">
+                                        <button
+                                            v-if="student.is_active"
+                                            class="btn btn-sm btn-outline-danger"
+                                            @click="deactivateStudent(student)"
+                                        >
+                                            <i class="bi bi-person-x me-1"></i>
+                                            Blacklist
+                                        </button>
+
+                                        <button
+                                            v-else
+                                            class="btn btn-sm btn-outline-success"
+                                            @click="activateStudent(student)"
+                                        >
+                                            <i class="bi bi-person-check me-1"></i>
+                                            Activate
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </section>
+
+                <section class="card dashboard-section border-0 shadow-sm mb-4">
+
+                    <div class="card-header bg-white border-0 p-4">
+                        <div>
+                            <div class="d-flex align-items-center gap-2 mb-1">
+                                <i class="bi bi-briefcase text-primary"></i>
+
+                                <h2 class="h5 fw-bold mb-0">
+                                    Job Postings
+                                </h2>
+                            </div>
+
+                            <p class="text-secondary small mb-0">
+                                Review, approve and manage placement drives.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div
+                        v-if="jobs.length === 0"
+                        class="card-body pt-0"
+                    >
+                        <div class="empty-state">
+                            <i class="bi bi-briefcase"></i>
+
+                            <div class="fw-semibold mt-2">
+                                No job postings found
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-else
+                        class="table-responsive"
+                    >
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Title</th>
+                                    <th>Company</th>
+                                    <th>Location</th>
+                                    <th>Deadline</th>
+                                    <th>Applications</th>
+                                    <th>Status</th>
+                                    <th class="text-end pe-4">Actions</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr
+                                    v-for="job in jobs"
+                                    :key="job.id"
+                                >
+                                    <td class="ps-4">
+                                        <div class="fw-semibold">
+                                            {{ job.title }}
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        {{ job.company?.name || "-" }}
+                                    </td>
+
+                                    <td>
+                                        {{ job.location || "-" }}
+                                    </td>
+
+                                    <td>
+                                        <span class="small">
+                                            {{ job.deadline || "-" }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span class="badge bg-light text-dark border">
+                                            {{ job.application_count }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span
+                                            class="badge rounded-pill"
+                                            :class="getJobStatusClass(job.status)"
+                                        >
+                                            {{ job.status }}
+                                        </span>
+                                    </td>
+
+                                    <td class="text-end pe-4">
+                                        <div class="d-flex flex-wrap justify-content-end gap-1">
+
+                                            <button
+                                                v-if="job.status === 'Pending'"
+                                                class="btn btn-sm btn-success"
+                                                @click="approveJob(job)"
+                                            >
+                                                <i class="bi bi-check-lg me-1"></i>
+                                                Approve
+                                            </button>
+
+                                            <button
+                                                v-if="job.status === 'Pending'"
+                                                class="btn btn-sm btn-outline-danger"
+                                                @click="rejectJob(job)"
+                                            >
+                                                <i class="bi bi-x-lg me-1"></i>
+                                                Reject
+                                            </button>
+
+                                            <button
+                                                v-if="
+                                                    job.status !== 'Inactive' &&
+                                                    job.status !== 'Rejected'
+                                                "
+                                                class="btn btn-sm btn-outline-danger"
+                                                @click="deactivateJob(job)"
+                                            >
+                                                <i class="bi bi-pause-circle me-1"></i>
+                                                Deactivate
+                                            </button>
+
+                                            <button
+                                                v-if="job.status === 'Inactive'"
+                                                class="btn btn-sm btn-outline-success"
+                                                @click="activateJob(job)"
+                                            >
+                                                <i class="bi bi-play-circle me-1"></i>
+                                                Reactivate
+                                            </button>
+
+                                        </div>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </section>
+
+                <section class="card dashboard-section border-0 shadow-sm mb-4">
+
+                    <div class="card-header bg-white border-0 p-4">
+                        <div class="d-flex align-items-center gap-2 mb-1">
+                            <i class="bi bi-file-earmark-text text-primary"></i>
+
+                            <h2 class="h5 fw-bold mb-0">
+                                Applications
+                            </h2>
+                        </div>
+
+                        <p class="text-secondary small mb-0">
+                            Overview of applications submitted through the portal.
+                        </p>
+                    </div>
+
+                    <div
+                        v-if="applications.length === 0"
+                        class="card-body pt-0"
+                    >
+                        <div class="empty-state">
+                            <i class="bi bi-inbox"></i>
+
+                            <div class="fw-semibold mt-2">
+                                No applications found
+                            </div>
+                        </div>
+                    </div>
+
+                    <div
+                        v-else
+                        class="table-responsive"
+                    >
+                        <table class="table table-hover align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th class="ps-4">Student</th>
+                                    <th>Student ID</th>
+                                    <th>Job</th>
+                                    <th>Company</th>
+                                    <th>Status</th>
+                                    <th class="pe-4">Applied At</th>
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                <tr
+                                    v-for="application in applications"
+                                    :key="application.id"
+                                >
+                                    <td class="ps-4">
+                                        <div class="fw-semibold">
+                                            {{ application.student?.name || "-" }}
+                                        </div>
+                                    </td>
+
+                                    <td>
+                                        <span class="font-monospace small">
+                                            {{ application.student?.student_id || "-" }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        {{ application.job?.title || "-" }}
+                                    </td>
+
+                                    <td>
+                                        {{ application.job?.company || "-" }}
+                                    </td>
+
+                                    <td>
+                                        <span
+                                            class="badge rounded-pill"
+                                            :class="getApplicationStatusClass(application.status)"
+                                        >
+                                            {{ application.status }}
+                                        </span>
+                                    </td>
+
+                                    <td class="pe-4">
+                                        <span class="small text-secondary">
+                                            {{ formatDate(application.applied_at) }}
+                                        </span>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                </section>
+
+            </template>
+
+        </main>
+
+        <div
+            v-if="selectedCompany"
+            class="modal-backdrop-custom"
+            @click.self="closeCompanyDetails"
+        >
+            <div class="company-modal shadow-lg">
+
+                <div class="modal-header-custom">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="company-modal-icon">
+                            <i class="bi bi-building"></i>
+                        </div>
+
+                        <div>
+                            <div class="small text-secondary">
+                                Company Profile
+                            </div>
+
+                            <h2 class="h5 fw-bold mb-0">
+                                {{ selectedCompany.name }}
+                            </h2>
+                        </div>
+                    </div>
+
+                    <button
+                        class="btn btn-sm btn-light border rounded-circle close-modal-btn"
+                        @click="closeCompanyDetails"
+                        aria-label="Close"
+                    >
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
+
+                <div class="modal-body-custom">
+
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+                            <div class="detail-box">
+                                <div class="detail-label">
+                                    Company ID
+                                </div>
+
+                                <div class="detail-value font-monospace">
+                                    {{ selectedCompany.company_id }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="detail-box">
+                                <div class="detail-label">
+                                    Industry
+                                </div>
+
+                                <div class="detail-value">
+                                    {{ selectedCompany.industry || "-" }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="detail-box">
+                                <div class="detail-label">
+                                    Location
+                                </div>
+
+                                <div class="detail-value">
+                                    {{ selectedCompany.location || "-" }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="detail-box">
+                                <div class="detail-label">
+                                    Website
+                                </div>
+
+                                <div class="detail-value">
+                                    <a
+                                        v-if="selectedCompany.website"
+                                        :href="selectedCompany.website"
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        class="text-decoration-none"
+                                    >
+                                        {{ selectedCompany.website }}
+                                        <i class="bi bi-box-arrow-up-right ms-1"></i>
+                                    </a>
+
+                                    <span v-else>-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="detail-box">
+                                <div class="detail-label">
+                                    Description
+                                </div>
+
+                                <div class="detail-value">
+                                    {{ selectedCompany.description || "No description provided." }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="section-divider">
+                                <span>
+                                    <i class="bi bi-person-badge me-2"></i>
+                                    HR Contact
+                                </span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="detail-box">
+                                <div class="detail-label">
+                                    HR Name
+                                </div>
+
+                                <div class="detail-value">
+                                    {{ selectedCompany.hr_name || "-" }}
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="detail-box">
+                                <div class="detail-label">
+                                    HR Email
+                                </div>
+
+                                <div class="detail-value">
+                                    <a
+                                        v-if="selectedCompany.hr_email"
+                                        :href="`mailto:${selectedCompany.hr_email}`"
+                                        class="text-decoration-none"
+                                    >
+                                        {{ selectedCompany.hr_email }}
+                                    </a>
+
+                                    <span v-else>-</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="detail-box d-flex align-items-center justify-content-between gap-3">
+                                <div>
+                                    <div class="detail-label">
+                                        Account Status
+                                    </div>
+
+                                    <div class="small text-secondary">
+                                        Current company approval and activity state
+                                    </div>
+                                </div>
+
+                                <span
+                                    v-if="!selectedCompany.is_active"
+                                    class="badge rounded-pill bg-danger-subtle text-danger-emphasis px-3 py-2"
+                                >
+                                    Deactivated
+                                </span>
+
+                                <span
+                                    v-else-if="!selectedCompany.approved"
+                                    class="badge rounded-pill bg-warning-subtle text-warning-emphasis px-3 py-2"
+                                >
+                                    Pending Approval
+                                </span>
+
+                                <span
+                                    v-else
+                                    class="badge rounded-pill bg-success-subtle text-success-emphasis px-3 py-2"
+                                >
+                                    Approved & Active
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="modal-footer-custom">
+                    <button
+                        class="btn btn-secondary"
+                        @click="closeCompanyDetails"
+                    >
+                        Close
+                    </button>
+                </div>
+
+            </div>
         </div>
 
     </div>
-
-    </div>
-
 </template>
 
-
-
 <style scoped>
-
 .admin-dashboard {
-    max-width: 1400px;
-    margin: 0 auto;
-    padding: 30px;
-    font-family: Arial, sans-serif;
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-}
-
-.header h1 {
-    margin: 0;
-}
-
-.header p {
-    color: #666;
-}
-
-.logout-btn {
-    padding: 10px 18px;
-    border: none;
-    border-radius: 6px;
-    background: #333;
-    color: white;
-    cursor: pointer;
-}
-
-.logout-btn:hover {
-    background: #111;
-}
-
-.error {
-    padding: 12px;
-    margin-bottom: 20px;
-    background: #ffe0e0;
-    color: #a00000;
-    border-radius: 6px;
-}
-
-.loading {
-    text-align: center;
-    padding: 30px;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 20px;
-    margin-bottom: 40px;
-}
-
-.stat-card {
-    padding: 25px;
-    background: white;
-    border-radius: 10px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    text-align: center;
-}
-
-.stat-card h3 {
-    font-size: 32px;
-    margin: 0 0 8px;
-}
-
-.stat-card p {
-    margin: 0;
-    color: #666;
-}
-
-.section {
-    margin-bottom: 40px;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 15px;
-}
-
-.section-header input {
-    width: 300px;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-}
-
-.table-container {
-    overflow-x: auto;
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-}
-
-th,
-td {
-    padding: 12px;
-    border-bottom: 1px solid #eee;
-    text-align: left;
-}
-
-th {
-    background: #f5f5f5;
-}
-
-.action-btn {
-    border: none;
-    padding: 7px 12px;
-    margin: 2px;
-    border-radius: 5px;
-    cursor: pointer;
-}
-
-.approve {
-    background: #198754;
-    color: white;
-}
-
-.activate {
-    background: #0d6efd;
-    color: white;
-}
-
-.danger {
-    background: #dc3545;
-    color: white;
-}
-
-.warning {
-    background: #ffc107;
+    background: #f5f7fb;
     color: #212529;
 }
 
-.status {
-    display: inline-block;
-    padding: 5px 9px;
-    border-radius: 5px;
-    font-size: 13px;
-}
-
-.active {
-    background: #d1e7dd;
-    color: #0f5132;
-}
-
-.pending {
-    background: #fff3cd;
-    color: #664d03;
-}
-
-.inactive {
-    background: #f8d7da;
-    color: #842029;
-}
-
-.empty {
-    padding: 20px;
-    text-align: center;
-    color: #777;
-    background: #f8f8f8;
-}
-
-.details {
-    background: #6f42c1;
-    color: white;
-}
-
-.details-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.5);
-
+.dashboard-logo {
+    width: 38px;
+    height: 38px;
     display: flex;
+    align-items: center;
     justify-content: center;
-    align-items: center;
-
-    z-index: 1000;
-}
-
-.details-card {
-    width: 600px;
-    max-width: 90%;
-    max-height: 85vh;
-
-    overflow-y: auto;
-
-    background: white;
     border-radius: 10px;
-
-    box-shadow: 0 5px 20px rgba(0, 0, 0, 0.3);
+    background: rgba(255, 255, 255, 0.12);
+    color: #fff;
 }
 
-.details-header {
+.navbar-subtitle {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 0.72rem;
+    line-height: 1;
+}
+
+.stat-card {
+    transition:
+        transform 0.2s ease,
+        box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.75rem 1.5rem rgba(0, 0, 0, 0.08) !important;
+}
+
+.stat-icon {
+    width: 48px;
+    height: 48px;
     display: flex;
-    justify-content: space-between;
     align-items: center;
-
-    padding: 20px;
-
-    border-bottom: 1px solid #eee;
+    justify-content: center;
+    border-radius: 12px;
+    font-size: 1.25rem;
 }
 
-.details-header h2 {
-    margin: 0;
+.dashboard-section {
+    overflow: hidden;
 }
 
-.close-btn {
-    border: none;
-    background: transparent;
-
-    font-size: 28px;
-    cursor: pointer;
-
-    color: #555;
+.dashboard-section .table {
+    font-size: 0.9rem;
 }
 
-.close-btn:hover {
-    color: #000;
+.dashboard-section .table th {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #6c757d;
+    white-space: nowrap;
 }
 
-.details-content {
-    padding: 20px;
+.dashboard-section .table td {
+    padding-top: 0.95rem;
+    padding-bottom: 0.95rem;
 }
 
-.detail-row {
-    display: grid;
-    grid-template-columns: 150px 1fr;
-    gap: 15px;
-
-    padding: 10px 0;
-
-    border-bottom: 1px solid #f0f0f0;
+.search-box {
+    position: relative;
+    width: min(100%, 340px);
 }
 
-.detail-row strong {
-    color: #555;
+.search-box i {
+    position: absolute;
+    left: 0.9rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #6c757d;
+    z-index: 2;
 }
 
-.details-content h3 {
-    margin-top: 10px;
+.search-box .form-control {
+    padding-left: 2.5rem;
+    min-height: 42px;
 }
 
-.details-content hr {
-    border: none;
-    border-top: 1px solid #ddd;
-    margin: 20px 0;
+.empty-state {
+    min-height: 180px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #adb5bd;
+    text-align: center;
 }
 
-.details-footer {
-    padding: 15px 20px;
-
-    border-top: 1px solid #eee;
-
-    text-align: right;
+.empty-state > i {
+    font-size: 2.2rem;
 }
 
-@media (max-width: 900px) {
+.modal-backdrop-custom {
+    position: fixed;
+    inset: 0;
+    z-index: 1055;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(15, 23, 42, 0.62);
+    backdrop-filter: blur(3px);
+}
 
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
+.company-modal {
+    width: 100%;
+    max-width: 720px;
+    max-height: 90vh;
+    overflow-y: auto;
+    background: #fff;
+    border-radius: 16px;
+}
+
+.modal-header-custom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.company-modal-icon {
+    width: 46px;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 12px;
+    background: #e7f1ff;
+    color: #0d6efd;
+    font-size: 1.2rem;
+}
+
+.close-modal-btn {
+    width: 34px;
+    height: 34px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.modal-body-custom {
+    padding: 1.5rem;
+}
+
+.detail-box {
+    height: 100%;
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    background: #f8f9fa;
+}
+
+.detail-label {
+    margin-bottom: 0.3rem;
+    color: #6c757d;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.detail-value {
+    color: #212529;
+    line-height: 1.5;
+    overflow-wrap: anywhere;
+}
+
+.section-divider {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin: 0.25rem 0;
+    color: #495057;
+    font-size: 0.85rem;
+    font-weight: 700;
+}
+
+.section-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: #dee2e6;
+}
+
+.modal-footer-custom {
+    display: flex;
+    justify-content: flex-end;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid #e9ecef;
+}
+
+@media (max-width: 767.98px) {
+    .navbar-brand {
+        font-size: 0.95rem;
     }
 
-    .section-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
+    .dashboard-section .table {
+        min-width: 900px;
     }
 
-    .section-header input {
+    .search-box {
         width: 100%;
     }
-}
 
-@media (max-width: 500px) {
-
-    .stats-grid {
-        grid-template-columns: 1fr;
+    .modal-header-custom,
+    .modal-footer-custom {
+        padding-left: 1rem;
+        padding-right: 1rem;
     }
 
-    .admin-dashboard {
-        padding: 15px;
+    .modal-body-custom {
+        padding: 1rem;
     }
 }
-
 </style>

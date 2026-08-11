@@ -26,7 +26,6 @@ const resumeFile = ref(null);
 const resumeUploading = ref(false);
 const resumeInput = ref(null);
 
-/* CSV EXPORT */
 const exportLoading = ref(false);
 const exportStatus = ref("");
 const exportTaskId = ref(null);
@@ -41,7 +40,6 @@ const editForm = ref({
     education: "",
     experience: ""
 });
-
 
 const loadProfile = async () => {
     loading.value = true;
@@ -61,7 +59,6 @@ const loadProfile = async () => {
             education: student.value.education || "",
             experience: student.value.experience || ""
         };
-
     } catch (error) {
         errorMessage.value =
             error.response?.data?.message ||
@@ -70,7 +67,6 @@ const loadProfile = async () => {
         loading.value = false;
     }
 };
-
 
 const loadJobs = async () => {
     jobsLoading.value = true;
@@ -97,7 +93,6 @@ const loadJobs = async () => {
         );
 
         jobs.value = response.data.jobs;
-
     } catch (error) {
         errorMessage.value =
             error.response?.data?.message ||
@@ -106,7 +101,6 @@ const loadJobs = async () => {
         jobsLoading.value = false;
     }
 };
-
 
 const loadApplications = async () => {
     applicationsLoading.value = true;
@@ -118,7 +112,6 @@ const loadApplications = async () => {
         );
 
         applications.value = response.data.applications;
-
     } catch (error) {
         errorMessage.value =
             error.response?.data?.message ||
@@ -127,7 +120,6 @@ const loadApplications = async () => {
         applicationsLoading.value = false;
     }
 };
-
 
 const applyForJob = async (job) => {
     if (!job.can_apply) {
@@ -149,7 +141,6 @@ const applyForJob = async (job) => {
 
         await loadJobs();
         await loadApplications();
-
     } catch (error) {
         errorMessage.value =
             error.response?.data?.message ||
@@ -158,7 +149,6 @@ const applyForJob = async (job) => {
         applyingJobId.value = null;
     }
 };
-
 
 const selectResume = (event) => {
     const file = event.target.files[0];
@@ -197,7 +187,6 @@ const selectResume = (event) => {
     resumeFile.value = file;
 };
 
-
 const uploadResume = async () => {
     if (!resumeFile.value) {
         errorMessage.value =
@@ -233,9 +222,7 @@ const uploadResume = async () => {
         }
 
         await loadProfile();
-
     } catch (error) {
-
         if (error.response?.status === 413) {
             errorMessage.value =
                 "Resume is too large. Maximum size is 5 MB.";
@@ -244,12 +231,10 @@ const uploadResume = async () => {
                 error.response?.data?.message ||
                 "Failed to upload resume.";
         }
-
     } finally {
         resumeUploading.value = false;
     }
 };
-
 
 const viewResume = async () => {
     errorMessage.value = "";
@@ -271,14 +256,12 @@ const viewResume = async () => {
         setTimeout(() => {
             URL.revokeObjectURL(fileURL);
         }, 60000);
-
     } catch (error) {
         errorMessage.value =
             error.response?.data?.message ||
             "Failed to open resume.";
     }
 };
-
 
 const viewOfferLetter = async (application) => {
     errorMessage.value = "";
@@ -300,14 +283,12 @@ const viewOfferLetter = async (application) => {
         setTimeout(() => {
             URL.revokeObjectURL(fileURL);
         }, 60000);
-
     } catch (error) {
         errorMessage.value =
             error.response?.data?.message ||
             "Failed to open offer letter.";
     }
 };
-
 
 const clearSearch = () => {
     search.value = "";
@@ -316,7 +297,6 @@ const clearSearch = () => {
 
     loadJobs();
 };
-
 
 const startEditing = () => {
     successMessage.value = "";
@@ -335,12 +315,10 @@ const startEditing = () => {
     isEditing.value = true;
 };
 
-
 const cancelEditing = () => {
     isEditing.value = false;
     errorMessage.value = "";
 };
-
 
 const saveProfile = async () => {
     saving.value = true;
@@ -375,7 +353,6 @@ const saveProfile = async () => {
 
         isEditing.value = false;
         successMessage.value = "Profile updated successfully.";
-
     } catch (error) {
         errorMessage.value =
             error.response?.data?.message ||
@@ -385,32 +362,24 @@ const saveProfile = async () => {
     }
 };
 
-
 const getStatusClass = (status) => {
     switch (status) {
         case "Applied":
-            return "status-applied";
-
+            return "text-bg-info";
         case "Shortlisted":
-            return "status-shortlisted";
-
+            return "text-bg-warning";
         case "Interview":
-            return "status-interview";
-
+            return "text-bg-primary";
         case "Offer":
-            return "status-offer";
-
+            return "text-bg-success";
         case "Placed":
-            return "status-placed";
-
+            return "text-bg-success";
         case "Rejected":
-            return "status-rejected";
-
+            return "text-bg-danger";
         default:
-            return "status-default";
+            return "text-bg-secondary";
     }
 };
-
 
 const formatUTCDateTime = (value) => {
     if (!value) {
@@ -432,7 +401,6 @@ const formatUTCDateTime = (value) => {
     });
 };
 
-
 const formatLocalDateTime = (value) => {
     if (!value) {
         return "-";
@@ -449,11 +417,6 @@ const formatLocalDateTime = (value) => {
         timeStyle: "short"
     });
 };
-
-
-/* =========================
-   CSV EXPORT
-   ========================= */
 
 const startExport = async () => {
     exportLoading.value = true;
@@ -472,7 +435,6 @@ const startExport = async () => {
             "Export started. Preparing your CSV...";
 
         pollExportStatus();
-
     } catch (error) {
         exportLoading.value = false;
         exportStatus.value = "";
@@ -482,7 +444,6 @@ const startExport = async () => {
             "Failed to start CSV export.";
     }
 };
-
 
 const pollExportStatus = () => {
     if (exportPollTimer) {
@@ -494,7 +455,6 @@ const pollExportStatus = () => {
         1000
     );
 };
-
 
 const checkExportStatus = async () => {
     if (!exportTaskId.value) {
@@ -520,7 +480,6 @@ const checkExportStatus = async () => {
         }
 
         if (status === "SUCCESS") {
-
             exportStatus.value =
                 "Export completed. Downloading...";
 
@@ -543,7 +502,6 @@ const checkExportStatus = async () => {
         errorMessage.value =
             response.data.message ||
             "CSV export failed.";
-
     } catch (error) {
         exportLoading.value = false;
         exportStatus.value = "";
@@ -554,9 +512,7 @@ const checkExportStatus = async () => {
     }
 };
 
-
 const downloadExport = async () => {
-
     const response = await api.get(
         `/api/student/export-history/download/${exportTaskId.value}`,
         {
@@ -604,7 +560,6 @@ const downloadExport = async () => {
     window.URL.revokeObjectURL(url);
 };
 
-
 onMounted(async () => {
     await loadProfile();
     await loadJobs();
@@ -612,1168 +567,1364 @@ onMounted(async () => {
 });
 </script>
 
-
 <template>
-    <div class="dashboard">
+    <div class="bg-light min-vh-100">
 
-        <div class="header">
+        <nav class="navbar navbar-dark bg-primary shadow-sm">
+            <div class="container-fluid px-3 px-md-5">
 
-            <div>
-                <h1>Student Dashboard</h1>
+                <div>
+                    <span class="navbar-brand fw-bold mb-0">
+                        Placement Portal
+                    </span>
 
-                <p v-if="student">
-                    Welcome, {{ student.name }}!
-                </p>
+                    <div
+                        v-if="student"
+                        class="text-white-50 small"
+                    >
+                        Student Dashboard
+                    </div>
+                </div>
+
+                <LogoutButton />
+
             </div>
+        </nav>
 
-            <LogoutButton />
-
-        </div>
-
-
-
-        <div
-            v-if="errorMessage"
-            class="error-message"
-        >
-            {{ errorMessage }}
-        </div>
-
-        <div
-            v-if="successMessage"
-            class="success-message"
-        >
-            {{ successMessage }}
-        </div>
-
-
-
-        <div
-            v-if="loading"
-            class="message"
-        >
-            Loading profile...
-        </div>
-
-
-        <div v-else>
+        <main class="container-fluid px-3 px-md-5 py-4">
 
             <div
-                v-if="student && !isEditing"
-                class="profile-section"
+                v-if="errorMessage"
+                class="alert alert-danger alert-dismissible"
+                role="alert"
             >
+                {{ errorMessage }}
+            </div>
 
-                <div class="section-header">
+            <div
+                v-if="successMessage"
+                class="alert alert-success"
+                role="alert"
+            >
+                {{ successMessage }}
+            </div>
 
-                    <h2>My Profile</h2>
+            <div
+                v-if="loading"
+                class="card border-0 shadow-sm"
+            >
+                <div class="card-body text-center py-5">
+                    <div
+                        class="spinner-border text-primary mb-3"
+                        role="status"
+                    ></div>
+                    <p class="mb-0 text-muted">
+                        Loading profile...
+                    </p>
+                </div>
+            </div>
 
-                    <button
-                        class="edit-button"
-                        @click="startEditing"
-                    >
-                        Edit Profile
-                    </button>
+            <div v-else>
+
+                <div
+                    v-if="student && !isEditing"
+                    class="card border-0 shadow-sm mb-4"
+                >
+
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                            <div>
+                                <h2 class="h4 fw-bold mb-1">
+                                    My Profile
+                                </h2>
+
+                                <p class="text-muted mb-0">
+                                    View and manage your placement profile
+                                </p>
+                            </div>
+
+                            <button
+                                class="btn btn-primary"
+                                @click="startEditing"
+                            >
+                                Edit Profile
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                    <div class="card-body p-4">
+
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <div class="profile-card">
+                                    <small class="text-muted d-block">
+                                        Student ID
+                                    </small>
+                                    <strong>
+                                        {{ student.student_id || "-" }}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="profile-card">
+                                    <small class="text-muted d-block">
+                                        Name
+                                    </small>
+                                    <strong>
+                                        {{ student.name || "-" }}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="profile-card">
+                                    <small class="text-muted d-block">
+                                        Department
+                                    </small>
+                                    <strong>
+                                        {{ student.department || "-" }}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="profile-card">
+                                    <small class="text-muted d-block">
+                                        Email
+                                    </small>
+                                    <strong>
+                                        {{ student.email || "-" }}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="profile-card">
+                                    <small class="text-muted d-block">
+                                        Phone
+                                    </small>
+                                    <strong>
+                                        {{ student.phone || "-" }}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <div class="profile-card">
+                                    <small class="text-muted d-block">
+                                        CGPA
+                                    </small>
+                                    <strong>
+                                        {{ student.cgpa ?? "-" }}
+                                    </strong>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="profile-card">
+                                    <small class="text-muted d-block mb-1">
+                                        Skills
+                                    </small>
+                                    <p class="mb-0 text-break">
+                                        {{ student.skills || "-" }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="profile-card">
+                                    <small class="text-muted d-block mb-1">
+                                        Education
+                                    </small>
+                                    <p class="mb-0 text-break">
+                                        {{ student.education || "-" }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <div class="profile-card">
+                                    <small class="text-muted d-block mb-1">
+                                        Experience
+                                    </small>
+                                    <p class="mb-0 text-break">
+                                        {{ student.experience || "No experience needed" }}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+
+                                <div class="profile-card">
+
+                                    <small class="text-muted d-block mb-2">
+                                        Resume
+                                    </small>
+
+                                    <div
+                                        v-if="student.resume"
+                                        class="alert alert-success d-flex justify-content-between align-items-center flex-wrap gap-2 mb-0"
+                                    >
+                                        <span>
+                                            <i class="bi bi-file-earmark-check me-2"></i>
+                                            Resume uploaded
+                                        </span>
+
+                                        <button
+                                            type="button"
+                                            class="btn btn-sm btn-outline-success"
+                                            @click="viewResume"
+                                        >
+                                            View Resume
+                                        </button>
+                                    </div>
+
+                                    <div
+                                        v-else
+                                        class="alert alert-warning mb-0"
+                                    >
+                                        No resume uploaded
+                                    </div>
+
+                                    <div class="mt-3 pt-3 border-top">
+
+                                        <input
+                                            ref="resumeInput"
+                                            type="file"
+                                            class="form-control"
+                                            accept=".pdf,.doc,.docx"
+                                            @change="selectResume"
+                                        />
+
+                                        <div
+                                            v-if="resumeFile"
+                                            class="small text-muted mt-2"
+                                        >
+                                            Selected:
+                                            {{ resumeFile.name }}
+                                        </div>
+
+                                        <div class="d-flex align-items-center gap-3 mt-3 flex-wrap">
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-success"
+                                                @click="uploadResume"
+                                                :disabled="
+                                                    !resumeFile ||
+                                                    resumeUploading
+                                                "
+                                            >
+                                                {{
+                                                    resumeUploading
+                                                        ? "Uploading..."
+                                                        : student.resume
+                                                            ? "Update Resume"
+                                                            : "Upload Resume"
+                                                }}
+                                            </button>
+
+                                            <small class="text-muted">
+                                                PDF, DOC or DOCX — maximum 5 MB
+                                            </small>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                    </div>
 
                 </div>
 
+                <div
+                    v-if="student && isEditing"
+                    class="card border-0 shadow-sm mb-4"
+                >
 
-                <div class="profile-grid">
+                    <div class="card-header bg-white border-0 pt-4 px-4">
 
-                    <div class="profile-item">
-                        <label>Student ID</label>
-                        <p>{{ student.student_id || "-" }}</p>
+                        <h2 class="h4 fw-bold mb-1">
+                            Edit Profile
+                        </h2>
+
+                        <p class="text-muted mb-0">
+                            Update your placement profile information
+                        </p>
+
                     </div>
 
+                    <div class="card-body p-4">
 
-                    <div class="profile-item">
-                        <label>Name</label>
-                        <p>{{ student.name || "-" }}</p>
-                    </div>
+                        <form @submit.prevent="saveProfile">
 
+                            <div class="row g-3">
 
-                    <div class="profile-item">
-                        <label>Department</label>
-                        <p>{{ student.department || "-" }}</p>
-                    </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">
+                                        Student ID
+                                    </label>
 
+                                    <input
+                                        :value="student.student_id"
+                                        type="text"
+                                        class="form-control"
+                                        disabled
+                                    />
+                                </div>
 
-                    <div class="profile-item">
-                        <label>Email</label>
-                        <p>{{ student.email || "-" }}</p>
-                    </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">
+                                        Email
+                                    </label>
 
+                                    <input
+                                        :value="student.email"
+                                        type="email"
+                                        class="form-control"
+                                        disabled
+                                    />
+                                </div>
 
-                    <div class="profile-item">
-                        <label>Phone</label>
-                        <p>{{ student.phone || "-" }}</p>
-                    </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">
+                                        Name
+                                    </label>
 
+                                    <input
+                                        v-model="editForm.name"
+                                        type="text"
+                                        class="form-control"
+                                        required
+                                    />
+                                </div>
 
-                    <div class="profile-item">
-                        <label>CGPA</label>
-                        <p>{{ student.cgpa ?? "-" }}</p>
-                    </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">
+                                        Department
+                                    </label>
 
+                                    <input
+                                        v-model="editForm.department"
+                                        type="text"
+                                        class="form-control"
+                                        required
+                                    />
+                                </div>
 
-                    <div class="profile-item full-width">
-                        <label>Skills</label>
-                        <p>{{ student.skills || "-" }}</p>
-                    </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">
+                                        Phone
+                                    </label>
 
+                                    <input
+                                        v-model="editForm.phone"
+                                        type="text"
+                                        class="form-control"
+                                        required
+                                    />
+                                </div>
 
-                    <div class="profile-item full-width">
-                        <label>Education</label>
-                        <p>{{ student.education || "-" }}</p>
-                    </div>
+                                <div class="col-md-6">
+                                    <label class="form-label fw-semibold">
+                                        CGPA
+                                    </label>
 
-                    <div class="profile-item full-width">
-                        <label>Experience</label>
-                        <p>{{ student.experience || "No experience needed" }}</p>
-                    </div>
+                                    <input
+                                        v-model="editForm.cgpa"
+                                        type="number"
+                                        min="0"
+                                        max="10"
+                                        step="0.01"
+                                        class="form-control"
+                                        required
+                                    />
+                                </div>
 
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">
+                                        Skills
+                                    </label>
 
-                    <div class="profile-item full-width">
+                                    <textarea
+                                        v-model="editForm.skills"
+                                        rows="3"
+                                        class="form-control"
+                                        placeholder="Example: Python, C, SQL, Vue"
+                                    ></textarea>
+                                </div>
 
-                        <label>Resume</label>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">
+                                        Education
+                                    </label>
 
-                        <div
-                            v-if="student.resume"
-                            class="resume-status uploaded"
-                        >
-                            <div class="resume-current">
+                                    <textarea
+                                        v-model="editForm.education"
+                                        rows="3"
+                                        class="form-control"
+                                        placeholder="Enter your educational details"
+                                    ></textarea>
+                                </div>
 
-                                <span>
-                                    Resume uploaded
-                                </span>
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold">
+                                        Experience
+                                    </label>
+
+                                    <textarea
+                                        v-model="editForm.experience"
+                                        rows="4"
+                                        class="form-control"
+                                        placeholder="Experience Summary"
+                                    ></textarea>
+                                </div>
+
+                            </div>
+
+                            <div class="d-flex gap-2 mt-4">
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-success"
+                                    :disabled="saving"
+                                >
+                                    {{
+                                        saving
+                                            ? "Saving..."
+                                            : "Save Changes"
+                                    }}
+                                </button>
 
                                 <button
                                     type="button"
-                                    class="view-resume-button"
-                                    @click="viewResume"
+                                    class="btn btn-secondary"
+                                    @click="cancelEditing"
+                                    :disabled="saving"
                                 >
-                                    View Resume
+                                    Cancel
                                 </button>
 
                             </div>
+
+                        </form>
+
+                    </div>
+
+                </div>
+
+                <div class="card border-0 shadow-sm mb-4">
+
+                    <div class="card-header bg-white border-0 pt-4 px-4">
+
+                        <h2 class="h4 fw-bold mb-1">
+                            Placement Drives
+                        </h2>
+
+                        <p class="text-muted mb-0">
+                            Find and apply for available placement opportunities
+                        </p>
+
+                    </div>
+
+                    <div class="card-body p-4">
+
+                        <div class="bg-light rounded-3 p-3 p-md-4 mb-4">
+
+                            <div class="row g-3 align-items-end">
+
+                                <div class="col-lg-4 col-md-6">
+                                    <label class="form-label fw-semibold">
+                                        Search
+                                    </label>
+
+                                    <input
+                                        v-model="search"
+                                        type="text"
+                                        class="form-control"
+                                        placeholder="Company, position or skill"
+                                        @keyup.enter="loadJobs"
+                                    />
+                                </div>
+
+                                <div class="col-lg-3 col-md-6">
+                                    <label class="form-label fw-semibold">
+                                        Company
+                                    </label>
+
+                                    <input
+                                        v-model="companySearch"
+                                        type="text"
+                                        class="form-control"
+                                        placeholder="Company name"
+                                        @keyup.enter="loadJobs"
+                                    />
+                                </div>
+
+                                <div class="col-lg-3 col-md-6">
+                                    <label class="form-label fw-semibold">
+                                        Required Skills
+                                    </label>
+
+                                    <input
+                                        v-model="skillsSearch"
+                                        type="text"
+                                        class="form-control"
+                                        placeholder="Example: Python"
+                                        @keyup.enter="loadJobs"
+                                    />
+                                </div>
+
+                                <div class="col-lg-2 col-md-6">
+
+                                    <div class="d-flex gap-2">
+
+                                        <button
+                                            class="btn btn-primary flex-fill"
+                                            @click="loadJobs"
+                                        >
+                                            Search
+                                        </button>
+
+                                        <button
+                                            class="btn btn-outline-secondary"
+                                            @click="clearSearch"
+                                        >
+                                            Reset
+                                        </button>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+                        <div
+                            v-if="jobsLoading"
+                            class="text-center py-5"
+                        >
+                            <div
+                                class="spinner-border text-primary mb-3"
+                                role="status"
+                            ></div>
+
+                            <p class="text-muted mb-0">
+                                Loading placement drives...
+                            </p>
+                        </div>
+
+                        <div
+                            v-else-if="jobs.length === 0"
+                            class="text-center py-5"
+                        >
+                            <div class="display-6 text-muted mb-2">
+                                <i class="bi bi-briefcase"></i>
+                            </div>
+
+                            <h5>
+                                No placement drives found
+                            </h5>
+
+                            <p class="text-muted mb-0">
+                                Try changing your search criteria.
+                            </p>
                         </div>
 
                         <div
                             v-else
-                            class="resume-status not-uploaded"
+                            class="row g-4"
                         >
-                            <span>
-                                No resume uploaded
-                            </span>
+
+                            <div
+                                v-for="job in jobs"
+                                :key="job.id"
+                                class="col-xl-6"
+                            >
+
+                                <div class="card h-100 border shadow-sm job-card">
+
+                                    <div class="card-body p-4">
+
+                                        <div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+
+                                            <div>
+
+                                                <h3 class="h5 fw-bold mb-1">
+                                                    {{ job.title }}
+                                                </h3>
+
+                                                <div class="text-primary fw-semibold">
+                                                    {{ job.company.name }}
+                                                </div>
+
+                                            </div>
+
+                                            <span class="badge text-bg-success">
+                                                {{ job.status }}
+                                            </span>
+
+                                        </div>
+
+                                        <div class="row g-2 small mb-4">
+
+                                            <div class="col-md-6">
+                                                <div class="job-detail">
+                                                    <span class="text-muted">
+                                                        Location
+                                                    </span>
+                                                    <strong>
+                                                        {{ job.location || "-" }}
+                                                    </strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <div class="job-detail">
+                                                    <span class="text-muted">
+                                                        Salary
+                                                    </span>
+                                                    <strong>
+                                                        <span
+                                                            v-if="job.salary !== null"
+                                                        >
+                                                            ₹{{ job.salary }}
+                                                        </span>
+                                                        <span v-else>
+                                                            Not specified
+                                                        </span>
+                                                    </strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <div class="job-detail">
+                                                    <span class="text-muted">
+                                                        Experience
+                                                    </span>
+                                                    <strong>
+                                                        {{ job.experience || "-" }}
+                                                    </strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <div class="job-detail">
+                                                    <span class="text-muted">
+                                                        Minimum CGPA
+                                                    </span>
+                                                    <strong>
+                                                        {{ job.min_cgpa ?? "No minimum" }}
+                                                    </strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <div class="job-detail">
+                                                    <span class="text-muted">
+                                                        Deadline
+                                                    </span>
+                                                    <strong>
+                                                        {{ job.deadline }}
+                                                    </strong>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <div class="job-detail">
+                                                    <span class="text-muted">
+                                                        Applications
+                                                    </span>
+                                                    <strong>
+                                                        {{ job.application_count }}
+                                                        <span v-if="job.application_limit">
+                                                            / {{ job.application_limit }}
+                                                        </span>
+                                                        <span v-else>
+                                                            / Unlimited
+                                                        </span>
+                                                    </strong>
+                                                </div>
+                                            </div>
+
+                                        </div>
+
+                                        <div class="border-top pt-3 mb-3">
+
+                                            <h6 class="fw-bold">
+                                                Description
+                                            </h6>
+
+                                            <p class="text-muted mb-0 text-break">
+                                                {{ job.description || "-" }}
+                                            </p>
+
+                                        </div>
+
+                                        <div class="border-top pt-3 mb-3">
+
+                                            <h6 class="fw-bold">
+                                                Required Skills
+                                            </h6>
+
+                                            <p class="text-muted mb-0 text-break">
+                                                {{ job.skills_required || "-" }}
+                                            </p>
+
+                                        </div>
+
+                                        <div class="border-top pt-3 mb-3">
+
+                                            <h6 class="fw-bold">
+                                                Benefits
+                                            </h6>
+
+                                            <p class="text-muted mb-0 text-break">
+                                                {{ job.benefits || "-" }}
+                                            </p>
+
+                                        </div>
+
+                                        <div class="border-top pt-3 mb-4">
+
+                                            <h6 class="fw-bold">
+                                                Company
+                                            </h6>
+
+                                            <p class="mb-1">
+                                                {{ job.company.name }}
+                                            </p>
+
+                                            <p
+                                                v-if="job.company.industry"
+                                                class="text-muted small mb-1"
+                                            >
+                                                Industry:
+                                                {{ job.company.industry }}
+                                            </p>
+
+                                            <p
+                                                v-if="job.company.location"
+                                                class="text-muted small mb-0"
+                                            >
+                                                Location:
+                                                {{ job.company.location }}
+                                            </p>
+
+                                        </div>
+
+                                        <div>
+
+                                            <div
+                                                v-if="job.already_applied"
+                                                class="alert alert-info mb-0 text-center fw-semibold"
+                                            >
+                                                Already Applied
+                                            </div>
+
+                                            <div
+                                                v-else-if="!job.cgpa_eligible"
+                                                class="alert alert-danger mb-0 text-center fw-semibold"
+                                            >
+                                                CGPA requirement not met
+                                            </div>
+
+                                            <div
+                                                v-else-if="job.application_limit_reached"
+                                                class="alert alert-warning mb-0 text-center fw-semibold"
+                                            >
+                                                Application limit reached
+                                            </div>
+
+                                            <div v-else>
+
+                                                <div class="alert alert-success text-center fw-semibold mb-2">
+                                                    You are Eligible to apply
+                                                </div>
+
+                                                <button
+                                                    class="btn btn-primary w-100"
+                                                    @click="applyForJob(job)"
+                                                    :disabled="applyingJobId === job.id"
+                                                >
+                                                    {{
+                                                        applyingJobId === job.id
+                                                            ? "Applying..."
+                                                            : "Apply now"
+                                                    }}
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                </div>
+
+                            </div>
+
                         </div>
 
+                    </div>
 
-                        <div class="resume-upload">
+                </div>
 
-                            <input
-                                ref="resumeInput"
-                                type="file"
-                                accept=".pdf,.doc,.docx"
-                                @change="selectResume"
-                            />
+                <div class="card border-0 shadow-sm mb-4">
 
+                    <div class="card-header bg-white border-0 pt-4 px-4">
 
-                            <p
-                                v-if="resumeFile"
-                                class="selected-file"
-                            >
-                                Selected:
-                                {{ resumeFile.name }}
-                            </p>
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
 
+                            <div>
+                                <h2 class="h4 fw-bold mb-1">
+                                    My Applications
+                                </h2>
+
+                                <p class="text-muted mb-0">
+                                    Track the progress of your applications
+                                </p>
+                            </div>
 
                             <button
-                                type="button"
-                                class="resume-upload-button"
-                                @click="uploadResume"
-                                :disabled="
-                                    !resumeFile ||
-                                    resumeUploading
-                                "
+                                class="btn btn-success"
+                                @click="startExport"
+                                :disabled="exportLoading"
                             >
                                 {{
-                                    resumeUploading
-                                        ? "Uploading..."
-                                        : student.resume
-                                            ? "Update Resume"
-                                            : "Upload Resume"
+                                    exportLoading
+                                        ? "Exporting..."
+                                        : "Export Application History"
                                 }}
                             </button>
 
-
-                            <small>
-                                PDF, DOC or DOCX — maximum 5 MB
-                            </small>
-
                         </div>
 
                     </div>
 
-                </div>
-
-            </div>
-
-
-
-            <div
-                v-if="student && isEditing"
-                class="profile-section"
-            >
-
-                <div class="section-header">
-
-                    <h2>Edit Profile</h2>
-
-                </div>
-
-
-                <form @submit.prevent="saveProfile">
-
-                    <div class="form-grid">
-
-                        <div class="form-group">
-
-                            <label>Student ID</label>
-
-                            <input
-                                :value="student.student_id"
-                                type="text"
-                                disabled
-                            />
-
-                        </div>
-
-
-                        <div class="form-group">
-
-                            <label>Email</label>
-
-                            <input
-                                :value="student.email"
-                                type="email"
-                                disabled
-                            />
-
-                        </div>
-
-
-                        <div class="form-group">
-
-                            <label>Name</label>
-
-                            <input
-                                v-model="editForm.name"
-                                type="text"
-                                required
-                            />
-
-                        </div>
-
-
-                        <div class="form-group">
-
-                            <label>Department</label>
-
-                            <input
-                                v-model="editForm.department"
-                                type="text"
-                                required
-                            />
-
-                        </div>
-
-
-                        <div class="form-group">
-
-                            <label>Phone</label>
-
-                            <input
-                                v-model="editForm.phone"
-                                type="text"
-                                required
-                            />
-
-                        </div>
-
-
-                        <div class="form-group">
-
-                            <label>CGPA</label>
-
-                            <input
-                                v-model="editForm.cgpa"
-                                type="number"
-                                min="0"
-                                max="10"
-                                step="0.01"
-                                required
-                            />
-
-                        </div>
-
-
-                        <div class="form-group full-width">
-
-                            <label>Skills</label>
-
-                            <textarea
-                                v-model="editForm.skills"
-                                rows="3"
-                                placeholder="Example: Python, C, SQL, Vue"
-                            ></textarea>
-
-                        </div>
-
-
-                        <div class="form-group full-width">
-
-                            <label>Education</label>
-
-                            <textarea
-                                v-model="editForm.education"
-                                rows="3"
-                                placeholder="Enter your educational details"
-                            ></textarea>
-
-                        </div>
-
-
-                        <div class="form-group full-width">
-
-                            <label>Experience</label>
-
-                            <textarea
-                                v-model="editForm.experience"
-                                rows="4"
-                                placeholder="Experience Summary"
-                            ></textarea>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="form-actions">
-
-                        <button
-                            type="submit"
-                            class="save-button"
-                            :disabled="saving"
-                        >
-                            {{ saving ? "Saving..." : "Save Changes" }}
-                        </button>
-
-                        <button
-                            type="button"
-                            class="cancel-button"
-                            @click="cancelEditing"
-                            :disabled="saving"
-                        >
-                            Cancel
-                        </button>
-
-                    </div>
-
-                </form>
-
-            </div>
-
-
-            <div class="jobs-section">
-
-                <div class="section-header">
-
-                    <h2>Placement Drives</h2>
-
-                </div>
-
-
-                <div class="search-panel">
-
-                    <div class="search-field">
-
-                        <label>Search</label>
-
-                        <input
-                            v-model="search"
-                            type="text"
-                            placeholder="Company, position or skill"
-                            @keyup.enter="loadJobs"
-                        />
-
-                    </div>
-
-
-                    <div class="search-field">
-
-                        <label>Company</label>
-
-                        <input
-                            v-model="companySearch"
-                            type="text"
-                            placeholder="Company name"
-                            @keyup.enter="loadJobs"
-                        />
-
-                    </div>
-
-
-                    <div class="search-field">
-
-                        <label>Required Skills</label>
-
-                        <input
-                            v-model="skillsSearch"
-                            type="text"
-                            placeholder="Example: Python"
-                            @keyup.enter="loadJobs"
-                        />
-
-                    </div>
-
-
-                    <div class="search-actions">
-
-                        <button
-                            class="search-button"
-                            @click="loadJobs"
-                        >
-                            Search
-                        </button>
-
-
-                        <button
-                            class="reset-button"
-                            @click="clearSearch"
-                        >
-                            Reset
-                        </button>
-
-                    </div>
-
-                </div>
-
-
-
-                <div
-                    v-if="jobsLoading"
-                    class="message"
-                >
-                    Loading placement drives...
-                </div>
-
-
-
-                <div
-                    v-else-if="jobs.length === 0"
-                    class="empty-message"
-                >
-                    No placement drives found.
-                </div>
-
-
-
-                <div
-                    v-else
-                    class="jobs-grid"
-                >
-
-                    <div
-                        v-for="job in jobs"
-                        :key="job.id"
-                        class="job-card"
-                    >
-
-                        <div class="job-header">
-
-                            <div>
-
-                                <h3>
-                                    {{ job.title }}
-                                </h3>
-
-                                <p class="company-name">
-                                    {{ job.company.name }}
-                                </p>
-
-                            </div>
-
-
-                            <span class="status-badge">
-                                {{ job.status }}
-                            </span>
-
-                        </div>
-
-
-                        <div class="job-details">
-
-                            <div>
-                                <strong>Location:</strong>
-                                {{ job.location || "-" }}
-                            </div>
-
-
-                            <div>
-                                <strong>Salary:</strong>
-
-                                <span v-if="job.salary !== null">
-                                    ₹{{ job.salary }}
-                                </span>
-
-                                <span v-else>
-                                    Not specified
-                                </span>
-
-                            </div>
-
-
-                            <div>
-                                <strong>Experience:</strong>
-                                {{ job.experience || "-" }}
-                            </div>
-
-
-                            <div>
-                                <strong>Minimum CGPA:</strong>
-                                {{ job.min_cgpa ?? "No minimum" }}
-                            </div>
-
-
-                            <div>
-                                <strong>Deadline:</strong>
-                                {{ job.deadline }}
-                            </div>
-
-
-                            <div>
-                                <strong>Applications:</strong>
-
-                                {{ job.application_count }}
-
-                                <span v-if="job.application_limit">
-                                    / {{ job.application_limit }}
-                                </span>
-
-                                <span v-else>
-                                    / Unlimited
-                                </span>
-
-                            </div>
-
-                        </div>
-
-
-                        <div class="job-description">
-
-                            <strong>Description</strong>
-
-                            <p>
-                                {{ job.description || "-" }}
-                            </p>
-
-                        </div>
-
-
-                        <div class="job-info">
-
-                            <strong>Required Skills</strong>
-
-                            <p>
-                                {{ job.skills_required || "-" }}
-                            </p>
-
-                        </div>
-
-
-                        <div class="job-info">
-
-                            <strong>Benefits</strong>
-
-                            <p>
-                                {{ job.benefits || "-" }}
-                            </p>
-
-                        </div>
-
-
-                        <div class="company-info">
-
-                            <strong>Company</strong>
-
-                            <p>
-                                {{ job.company.name }}
-                            </p>
-
-
-                            <p v-if="job.company.industry">
-                                Industry:
-                                {{ job.company.industry }}
-                            </p>
-
-
-                            <p v-if="job.company.location">
-                                Location:
-                                {{ job.company.location }}
-                            </p>
-
-                        </div>
-
-
-
-                        <div class="application-state">
-
-                            <div
-                                v-if="job.already_applied"
-                                class="state already-applied"
-                            >
-                                Already Applied
-                            </div>
-
-
-                            <div
-                                v-else-if="!job.cgpa_eligible"
-                                class="state not-eligible"
-                            >
-                                CGPA requirement not met
-                            </div>
-
-
-                            <div
-                                v-else-if="job.application_limit_reached"
-                                class="state limit-reached"
-                            >
-                                Application limit reached
-                            </div>
-
-
-                            <div
-                                v-else
-                                class="apply-section"
-                            >
-
-                                <div class="state eligible">
-                                    You are Eligible to apply
-                                </div>
-
-
-                                <button
-                                    class="apply-button"
-                                    @click="applyForJob(job)"
-                                    :disabled="applyingJobId === job.id"
-                                >
-                                    {{
-                                        applyingJobId === job.id
-                                            ? "Applying..."
-                                            : "Apply now"
-                                    }}
-                                </button>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            <div class="applications-section">
-
-                <div class="section-header">
-
-                    <h2>My Applications</h2>
-
-                    <button
-                        class="export-button"
-                        @click="startExport"
-                        :disabled="exportLoading"
-                    >
-                        {{
-                            exportLoading
-                                ? "Exporting..."
-                                : "Export Application History"
-                        }}
-                    </button>
-
-                </div>
-
-                <p
-                    v-if="exportStatus"
-                    class="export-status"
-                >
-                    {{ exportStatus }}
-                </p>
-
-
-                <div
-                    v-if="applicationsLoading"
-                    class="message"
-                >
-                    Loading applications...
-                </div>
-
-
-                <div
-                    v-else-if="applications.length === 0"
-                    class="empty-message"
-                >
-                    You have not applied for any jobs yet.
-                </div>
-
-
-                <div
-                    v-else
-                    class="applications-list"
-                >
-
-                    <div
-                        v-for="application in applications"
-                        :key="application.id"
-                        class="application-card"
-                    >
-
-                        <div class="application-header">
-
-                            <div>
-
-                                <h3>
-                                    {{ application.job.title }}
-                                </h3>
-
-
-                                <p class="company-name">
-                                    {{
-                                        application.company
-                                            ? application.company.name
-                                            : "Company unavailable"
-                                    }}
-                                </p>
-
-                            </div>
-
-
-                            <span
-                                class="application-status"
-                                :class="
-                                    getStatusClass(
-                                        application.status
-                                    )
-                                "
-                            >
-                                {{ application.status }}
-                            </span>
-
-                        </div>
-
-
-                        <div class="application-details">
-
-                            <div>
-
-                                <strong>Location:</strong>
-
-                                {{
-                                    application.job.location || "-"
-                                }}
-
-                            </div>
-
-
-                            <div>
-
-                                <strong>Salary:</strong>
-
-                                <span
-                                    v-if="
-                                        application.job.salary !== null
-                                    "
-                                >
-                                    ₹{{ application.job.salary }}
-                                </span>
-
-                                <span v-else>
-                                    Not specified
-                                </span>
-
-                            </div>
-
-
-                            <div>
-
-                                <strong>Experience:</strong>
-
-                                {{
-                                    application.job.experience || "-"
-                                }}
-
-                            </div>
-
-
-                            <div>
-
-                                <strong>Applied On:</strong>
-
-                                {{
-                                    formatUTCDateTime(
-                                        application.applied_at
-                                    )
-                                }}
-
-                            </div>
-
-
-                            <div>
-
-                                <strong>Last Updated:</strong>
-
-                                {{
-                                    formatUTCDateTime(
-                                        application.updated_at
-                                    )
-                                }}
-
-                            </div>
-
-
-                            <div>
-
-                                <strong>Job Deadline:</strong>
-
-                                {{
-                                    application.job.deadline || "-"
-                                }}
-
-                            </div>
-
-                        </div>
-
+                    <div class="card-body p-4">
 
                         <div
-                            v-if="application.company"
-                            class="application-info"
+                            v-if="exportStatus"
+                            class="alert alert-primary"
                         >
-
-                            <h4>Company Information</h4>
-
-
-                            <p>
-                                <strong>Name:</strong>
-                                {{ application.company.name }}
-                            </p>
-
-
-                            <p
-                                v-if="application.company.industry"
-                            >
-                                <strong>Industry:</strong>
-                                {{ application.company.industry }}
-                            </p>
-
-
-                            <p
-                                v-if="application.company.location"
-                            >
-                                <strong>Location:</strong>
-                                {{ application.company.location }}
-                            </p>
-
-
-                            <p
-                                v-if="application.company.website"
-                            >
-                                <strong>Website:</strong>
-
-                                {{ application.company.website }}
-                            </p>
-
+                            {{ exportStatus }}
                         </div>
 
-
                         <div
-                            v-if="application.remarks"
-                            class="application-info feedback"
+                            v-if="applicationsLoading"
+                            class="text-center py-5"
                         >
+                            <div
+                                class="spinner-border text-primary mb-3"
+                                role="status"
+                            ></div>
 
-                            <h4>Company Feedback</h4>
-
-                            <p>
-                                {{ application.remarks }}
+                            <p class="text-muted mb-0">
+                                Loading applications...
                             </p>
-
                         </div>
 
-
-
                         <div
-                            v-if="
-                                application.interview &&
-                                application.interview.datetime
-                            "
-                            class="interview-section"
+                            v-else-if="applications.length === 0"
+                            class="text-center py-5"
                         >
-
-                            <h4>Interview Schedule</h4>
-
-
-                            <div class="interview-details">
-
-                                <div>
-
-                                    <strong>
-                                        Date & Time:
-                                    </strong>
-
-                                    {{
-                                        formatLocalDateTime(
-                                            application.interview
-                                                .datetime
-                                        )
-                                    }}
-
-                                </div>
-
-
-                                <div
-                                    v-if="
-                                        application.interview.mode
-                                    "
-                                >
-
-                                    <strong>Mode:</strong>
-
-                                    {{
-                                        application.interview.mode
-                                    }}
-
-                                </div>
-
-
-                                <div
-                                    v-if="
-                                        application.interview.location
-                                    "
-                                >
-
-                                    <strong>
-                                        Location / Link:
-                                    </strong>
-
-                                    {{
-                                        application.interview.location
-                                    }}
-
-                                </div>
-
-
-                                <div
-                                    v-if="
-                                        application.interview.notes
-                                    "
-                                >
-
-                                    <strong>Notes:</strong>
-
-                                    {{
-                                        application.interview.notes
-                                    }}
-
-                                </div>
-
+                            <div class="display-6 text-muted mb-2">
+                                <i class="bi bi-file-earmark-text"></i>
                             </div>
 
-                        </div>
+                            <h5>
+                                No applications yet
+                            </h5>
 
-
-                        <div
-                            v-else-if="
-                                application.status ===
-                                'Shortlisted'
-                            "
-                            class="waiting-message"
-                        >
-                            Interview has not been scheduled yet.
-                        </div>
-
-
-                        <div
-                            v-if="
-                                application.status ===
-                                'Offer'
-                            "
-                            class="result-message selected-result"
-                        >
-
-                            <strong>
-                                🎉 Offer Received!
-                            </strong>
-
-                            <p>
-                                You have received an offer for this
-                                placement opportunity.
+                            <p class="text-muted mb-0">
+                                Your submitted applications will appear here.
                             </p>
+                        </div>
+
+                        <div
+                            v-else
+                            class="d-flex flex-column gap-4"
+                        >
 
                             <div
-                                v-if="
-                                    application.placement &&
-                                    application.placement.offer_letter
-                                "
-                                class="offer-letter-section"
-                            >
-                                <strong>Offer Letter</strong>
-
-                                <p>
-                                    Your offer letter is available.
-                                </p>
-
-                                <button
-                                    type="button"
-                                    class="view-offer-letter-button"
-                                    @click="
-                                        viewOfferLetter(application)
-                                    "
-                                >
-                                    View Offer Letter
-                                </button>
-                            </div>
-
-                        </div>
-
-
-                        <div
-                            v-if="
-                                application.status ===
-                                'Placed'
-                            "
-                            class="result-message placed-result"
-                        >
-
-                            <strong>
-                                🎉 Congratulations! You are Placed.
-                            </strong>
-
-                            <p>
-                                Your placement has been confirmed.
-                            </p>
-
-                            <div
-                                v-if="application.placement"
-                                class="placement-details"
+                                v-for="application in applications"
+                                :key="application.id"
+                                class="card border shadow-sm"
                             >
 
-                                <p>
-                                    <strong>Position:</strong>
-                                    {{ application.placement.position || "-" }}
-                                </p>
+                                <div class="card-body p-4">
 
-                                <p>
-                                    <strong>Salary:</strong>
-                                    <span
-                                        v-if="application.placement.salary !== null"
+                                    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3 mb-4">
+
+                                        <div>
+
+                                            <h3 class="h5 fw-bold mb-1">
+                                                {{ application.job.title }}
+                                            </h3>
+
+                                            <p class="text-primary fw-semibold mb-0">
+                                                {{
+                                                    application.company
+                                                        ? application.company.name
+                                                        : "Company unavailable"
+                                                }}
+                                            </p>
+
+                                        </div>
+
+                                        <span
+                                            class="badge rounded-pill fs-6 px-3 py-2"
+                                            :class="
+                                                getStatusClass(
+                                                    application.status
+                                                )
+                                            "
+                                        >
+                                            {{ application.status }}
+                                        </span>
+
+                                    </div>
+
+                                    <div class="bg-light rounded-3 p-3 mb-4">
+
+                                        <div class="row g-3 small">
+
+                                            <div class="col-md-6">
+                                                <span class="text-muted d-block">
+                                                    Location
+                                                </span>
+
+                                                <strong>
+                                                    {{
+                                                        application.job.location || "-"
+                                                    }}
+                                                </strong>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <span class="text-muted d-block">
+                                                    Salary
+                                                </span>
+
+                                                <strong>
+                                                    <span
+                                                        v-if="
+                                                            application.job.salary !== null
+                                                        "
+                                                    >
+                                                        ₹{{ application.job.salary }}
+                                                    </span>
+
+                                                    <span v-else>
+                                                        Not specified
+                                                    </span>
+                                                </strong>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <span class="text-muted d-block">
+                                                    Experience
+                                                </span>
+
+                                                <strong>
+                                                    {{
+                                                        application.job.experience || "-"
+                                                    }}
+                                                </strong>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <span class="text-muted d-block">
+                                                    Applied On
+                                                </span>
+
+                                                <strong>
+                                                    {{
+                                                        formatUTCDateTime(
+                                                            application.applied_at
+                                                        )
+                                                    }}
+                                                </strong>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <span class="text-muted d-block">
+                                                    Last Updated
+                                                </span>
+
+                                                <strong>
+                                                    {{
+                                                        formatUTCDateTime(
+                                                            application.updated_at
+                                                        )
+                                                    }}
+                                                </strong>
+                                            </div>
+
+                                            <div class="col-md-6">
+                                                <span class="text-muted d-block">
+                                                    Job Deadline
+                                                </span>
+
+                                                <strong>
+                                                    {{
+                                                        application.job.deadline || "-"
+                                                    }}
+                                                </strong>
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div
+                                        v-if="application.company"
+                                        class="border-top pt-3 mb-3"
                                     >
-                                        ₹{{ application.placement.salary }}
-                                    </span>
-                                    <span v-else>
-                                        Not specified
-                                    </span>
-                                </p>
 
-                                <p
-                                    v-if="application.placement.joining_date"
-                                >
-                                    <strong>Joining Date:</strong>
-                                    {{ application.placement.joining_date }}
-                                </p>
+                                        <h4 class="h6 fw-bold">
+                                            Company Information
+                                        </h4>
 
-                                <div
-                                    v-if="
-                                        application.placement.offer_letter
-                                    "
-                                    class="offer-letter-section"
-                                >
-                                    <strong>Offer Letter</strong>
+                                        <p class="mb-1">
+                                            <strong>Name:</strong>
+                                            {{ application.company.name }}
+                                        </p>
 
-                                    <p>
-                                        Your offer letter is available.
-                                    </p>
+                                        <p
+                                            v-if="application.company.industry"
+                                            class="mb-1"
+                                        >
+                                            <strong>Industry:</strong>
+                                            {{ application.company.industry }}
+                                        </p>
 
-                                    <button
-                                        type="button"
-                                        class="view-offer-letter-button"
-                                        @click="
-                                            viewOfferLetter(application)
+                                        <p
+                                            v-if="application.company.location"
+                                            class="mb-1"
+                                        >
+                                            <strong>Location:</strong>
+                                            {{ application.company.location }}
+                                        </p>
+
+                                        <p
+                                            v-if="application.company.website"
+                                            class="mb-0 text-break"
+                                        >
+                                            <strong>Website:</strong>
+                                            {{ application.company.website }}
+                                        </p>
+
+                                    </div>
+
+                                    <div
+                                        v-if="application.remarks"
+                                        class="alert alert-warning"
+                                    >
+
+                                        <h4 class="h6 fw-bold">
+                                            Company Feedback
+                                        </h4>
+
+                                        <p class="mb-0">
+                                            {{ application.remarks }}
+                                        </p>
+
+                                    </div>
+
+                                    <div
+                                        v-if="
+                                            application.interview &&
+                                            application.interview.datetime
                                         "
+                                        class="alert alert-primary"
                                     >
-                                        View Offer Letter
-                                    </button>
+
+                                        <h4 class="h6 fw-bold">
+                                            Interview Schedule
+                                        </h4>
+
+                                        <div class="d-flex flex-column gap-2">
+
+                                            <div>
+                                                <strong>
+                                                    Date & Time:
+                                                </strong>
+
+                                                {{
+                                                    formatLocalDateTime(
+                                                        application.interview.datetime
+                                                    )
+                                                }}
+                                            </div>
+
+                                            <div
+                                                v-if="
+                                                    application.interview.mode
+                                                "
+                                            >
+                                                <strong>
+                                                    Mode:
+                                                </strong>
+
+                                                {{
+                                                    application.interview.mode
+                                                }}
+                                            </div>
+
+                                            <div
+                                                v-if="
+                                                    application.interview.location
+                                                "
+                                            >
+                                                <strong>
+                                                    Location / Link:
+                                                </strong>
+
+                                                {{
+                                                    application.interview.location
+                                                }}
+                                            </div>
+
+                                            <div
+                                                v-if="
+                                                    application.interview.notes
+                                                "
+                                            >
+                                                <strong>
+                                                    Notes:
+                                                </strong>
+
+                                                {{
+                                                    application.interview.notes
+                                                }}
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div
+                                        v-else-if="
+                                            application.status ===
+                                            'Shortlisted'
+                                        "
+                                        class="alert alert-warning"
+                                    >
+                                        Interview has not been scheduled yet.
+                                    </div>
+
+                                    <div
+                                        v-if="
+                                            application.status ===
+                                            'Offer'
+                                        "
+                                        class="alert alert-success"
+                                    >
+
+                                        <h4 class="h6 fw-bold">
+                                            🎉 Offer Received!
+                                        </h4>
+
+                                        <p>
+                                            You have received an offer for this
+                                            placement opportunity.
+                                        </p>
+
+                                        <div
+                                            v-if="
+                                                application.placement &&
+                                                application.placement.offer_letter
+                                            "
+                                            class="border-top pt-3 mt-3"
+                                        >
+
+                                            <strong>
+                                                Offer Letter
+                                            </strong>
+
+                                            <p class="small mt-1">
+                                                Your offer letter is available.
+                                            </p>
+
+                                            <button
+                                                type="button"
+                                                class="btn btn-outline-success"
+                                                @click="
+                                                    viewOfferLetter(application)
+                                                "
+                                            >
+                                                View Offer Letter
+                                            </button>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div
+                                        v-if="
+                                            application.status ===
+                                            'Placed'
+                                        "
+                                        class="alert alert-success"
+                                    >
+
+                                        <h4 class="h6 fw-bold">
+                                            🎉 Congratulations! You are Placed.
+                                        </h4>
+
+                                        <p>
+                                            Your placement has been confirmed.
+                                        </p>
+
+                                        <div
+                                            v-if="application.placement"
+                                            class="border-top pt-3 mt-3"
+                                        >
+
+                                            <p class="mb-2">
+                                                <strong>
+                                                    Position:
+                                                </strong>
+
+                                                {{
+                                                    application.placement.position || "-"
+                                                }}
+                                            </p>
+
+                                            <p class="mb-2">
+                                                <strong>
+                                                    Salary:
+                                                </strong>
+
+                                                <span
+                                                    v-if="
+                                                        application.placement.salary !== null
+                                                    "
+                                                >
+                                                    ₹{{ application.placement.salary }}
+                                                </span>
+
+                                                <span v-else>
+                                                    Not specified
+                                                </span>
+                                            </p>
+
+                                            <p
+                                                v-if="
+                                                    application.placement.joining_date
+                                                "
+                                                class="mb-3"
+                                            >
+                                                <strong>
+                                                    Joining Date:
+                                                </strong>
+
+                                                {{
+                                                    application.placement.joining_date
+                                                }}
+                                            </p>
+
+                                            <div
+                                                v-if="
+                                                    application.placement.offer_letter
+                                                "
+                                            >
+
+                                                <strong>
+                                                    Offer Letter
+                                                </strong>
+
+                                                <p class="small mt-1">
+                                                    Your offer letter is available.
+                                                </p>
+
+                                                <button
+                                                    type="button"
+                                                    class="btn btn-outline-success"
+                                                    @click="
+                                                        viewOfferLetter(application)
+                                                    "
+                                                >
+                                                    View Offer Letter
+                                                </button>
+
+                                            </div>
+
+                                        </div>
+
+                                    </div>
+
+                                    <div
+                                        v-if="
+                                            application.status ===
+                                            'Rejected'
+                                        "
+                                        class="alert alert-danger"
+                                    >
+
+                                        <h4 class="h6 fw-bold">
+                                            Application Rejected
+                                        </h4>
+
+                                        <p class="mb-0">
+                                            Your application was not selected
+                                            for this opportunity.
+                                        </p>
+
+                                    </div>
+
+                                    <div
+                                        v-if="
+                                            application.status ===
+                                            'Interview'
+                                        "
+                                        class="alert alert-primary"
+                                    >
+                                        Your interview has been scheduled.
+                                        Please attend the interview at the
+                                        scheduled date and time.
+                                    </div>
+
+                                    <div
+                                        v-if="
+                                            application.status ===
+                                            'Applied'
+                                        "
+                                        class="alert alert-light border"
+                                    >
+                                        Your application is currently under
+                                        review by the company.
+                                    </div>
+
+                                    <div
+                                        v-if="
+                                            application.status ===
+                                            'Shortlisted'
+                                        "
+                                        class="alert alert-warning mb-0"
+                                    >
+                                        You have been shortlisted. Please check
+                                        the interview details above.
+                                    </div>
 
                                 </div>
 
                             </div>
 
-                        </div>
-
-
-                        <div
-                            v-if="
-                                application.status ===
-                                'Rejected'
-                            "
-                            class="result-message rejected-result"
-                        >
-
-                            <strong>
-                                Application Rejected
-                            </strong>
-
-                            <p>
-                                Your application was not selected
-                                for this opportunity.
-                            </p>
-
-                        </div>
-
-
-                        <div
-                            v-if="
-                                application.status ===
-                                'Interview'
-                            "
-                            class="waiting-message interview-status-message"
-                        >
-                            Your interview has been scheduled. Please
-                            attend the interview at the scheduled date
-                            and time.
-                        </div>
-
-
-                        <div
-                            v-if="
-                                application.status ===
-                                'Applied'
-                            "
-                            class="waiting-message"
-                        >
-                            Your application is currently under
-                            review by the company.
-                        </div>
-
-
-                        <div
-                            v-if="
-                                application.status ===
-                                'Shortlisted'
-                            "
-                            class="waiting-message shortlisted-message"
-                        >
-                            You have been shortlisted. Please check
-                            the interview details above.
                         </div>
 
                     </div>
@@ -1782,728 +1933,58 @@ onMounted(async () => {
 
             </div>
 
-        </div>
+        </main>
 
     </div>
 </template>
 
-
 <style scoped>
-
-.dashboard {
-    max-width: 1200px;
-    margin: 0 auto;
-    padding: 30px;
-}
-
-.header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 30px;
-}
-
-.header h1 {
-    margin-bottom: 5px;
-}
-
-.header p {
-    margin: 0;
-    color: #666;
-}
-
-.profile-section,
-.jobs-section,
-.applications-section {
-    background: #ffffff;
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    padding: 25px;
-    margin-bottom: 25px;
-}
-
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 25px;
-}
-
-.section-header h2 {
-    margin: 0;
-}
-
-.profile-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-}
-
-.profile-item {
-    padding: 15px;
+.profile-card {
     background: #f8f9fa;
-    border-radius: 8px;
+    border: 1px solid #e9ecef;
+    border-radius: 0.75rem;
+    padding: 1rem;
+    height: 100%;
 }
 
-.profile-item.full-width {
-    grid-column: span 2;
-}
-
-.profile-item label {
-    display: block;
-    font-weight: bold;
-    margin-bottom: 7px;
-}
-
-.profile-item p {
-    margin: 0;
-    color: #444;
-    white-space: pre-wrap;
-}
-
-.resume-status {
-    padding: 10px;
-    border-radius: 6px;
-    margin-top: 5px;
-}
-
-.resume-status.uploaded {
-    background: #d1e7dd;
-    color: #0f5132;
-}
-
-.resume-status.not-uploaded {
-    background: #fff3cd;
-    color: #664d03;
-}
-
-
-.edit-button,
-.save-button,
-.cancel-button,
-.search-button,
-.reset-button {
-    border: none;
-    border-radius: 6px;
-    padding: 10px 18px;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.edit-button {
-    background: #0d6efd;
-    color: white;
-}
-
-.save-button {
-    background: #198754;
-    color: white;
-}
-
-.cancel-button {
-    background: #6c757d;
-    color: white;
-}
-
-.search-button {
-    background: #0d6efd;
-    color: white;
-}
-
-.reset-button {
-    background: #6c757d;
-    color: white;
-}
-
-.edit-button:hover,
-.save-button:hover,
-.cancel-button:hover,
-.search-button:hover,
-.reset-button:hover {
-    opacity: 0.9;
-}
-
-.edit-button:disabled,
-.save-button:disabled,
-.cancel-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-
-.form-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-}
-
-.form-group.full-width {
-    grid-column: span 2;
-}
-
-.form-group label {
-    font-weight: bold;
-    margin-bottom: 7px;
-}
-
-.form-group input,
-.form-group textarea {
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    font-size: 14px;
-    font-family: inherit;
-}
-
-.form-group input:disabled {
-    background: #e9ecef;
-    cursor: not-allowed;
-}
-
-.form-actions {
-    display: flex;
-    gap: 10px;
-    margin-top: 25px;
-}
-
-
-.search-panel {
-    display: grid;
-    grid-template-columns: 1.5fr 1fr 1fr auto;
-    gap: 15px;
-    align-items: end;
-    background: #f8f9fa;
-    padding: 20px;
-    border-radius: 8px;
-    margin-bottom: 25px;
-}
-
-.search-field {
-    display: flex;
-    flex-direction: column;
-}
-
-.search-field label {
-    font-weight: bold;
-    margin-bottom: 7px;
-}
-
-.search-field input {
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-}
-
-.search-actions {
-    display: flex;
-    gap: 8px;
-}
-
-
-.jobs-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
+.profile-card strong {
+    color: #212529;
 }
 
 .job-card {
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    padding: 20px;
-    background: #fff;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
 }
 
-.job-header {
-    display: flex;
-    justify-content: space-between;
-    gap: 15px;
-    margin-bottom: 20px;
+.job-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1) !important;
 }
 
-.job-header h3 {
-    margin: 0 0 5px;
-}
-
-.company-name {
-    margin: 0;
-    font-weight: bold;
-    color: #555;
-}
-
-.status-badge {
-    background: #198754;
-    color: white;
-    padding: 5px 10px;
-    border-radius: 15px;
-    font-size: 12px;
-    height: fit-content;
-}
-
-.job-details {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
-    margin-bottom: 20px;
-}
-
-.job-description,
-.job-info,
-.company-info {
-    margin-bottom: 18px;
-}
-
-.job-description p,
-.job-info p,
-.company-info p {
-    margin: 6px 0 0;
-    white-space: pre-wrap;
-}
-
-.company-info {
-    padding-top: 15px;
-    border-top: 1px solid #eee;
-}
-
-
-
-.application-state {
-    margin-top: 20px;
-}
-
-.state {
-    padding: 10px;
-    border-radius: 6px;
-    text-align: center;
-    font-weight: bold;
-}
-
-.already-applied {
-    background: #cff4fc;
-    color: #055160;
-}
-
-.not-eligible {
-    background: #f8d7da;
-    color: #842029;
-}
-
-.limit-reached {
-    background: #fff3cd;
-    color: #664d03;
-}
-
-.eligible {
-    background: #d1e7dd;
-    color: #0f5132;
-}
-
-.apply-section {
+.job-detail {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-}
-
-.apply-button {
-    width: 100%;
-    padding: 11px;
-    border: none;
-    border-radius: 6px;
-    background: #0d6efd;
-    color: white;
-    font-size: 15px;
-    font-weight: bold;
-    cursor: pointer;
-}
-
-.apply-button:hover {
-    opacity: 0.9;
-}
-
-.apply-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-
-.applications-list {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.application-card {
-    border: 1px solid #ddd;
-    border-radius: 10px;
-    padding: 20px;
-    background: #fff;
-}
-
-.application-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-    gap: 15px;
-    margin-bottom: 20px;
-}
-
-.application-header h3 {
-    margin: 0 0 5px;
-}
-
-.application-status {
-    padding: 7px 14px;
-    border-radius: 20px;
-    font-size: 13px;
-    font-weight: bold;
-    white-space: nowrap;
-}
-
-.status-applied {
-    background: #cff4fc;
-    color: #055160;
-}
-
-.status-shortlisted {
-    background: #fff3cd;
-    color: #664d03;
-}
-
-.status-interview {
-    background: #e7f1ff;
-    color: #084298;
-}
-
-.status-offer {
-    background: #d1e7dd;
-    color: #0f5132;
-}
-
-.status-placed {
-    background: #198754;
-    color: #ffffff;
-}
-
-.status-rejected {
-    background: #f8d7da;
-    color: #842029;
-}
-
-.status-default {
-    background: #e2e3e5;
-    color: #41464b;
-}
-
-.application-details {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 12px;
-    padding: 15px;
+    gap: 0.15rem;
     background: #f8f9fa;
-    border-radius: 8px;
-    margin-bottom: 20px;
+    border-radius: 0.5rem;
+    padding: 0.7rem;
+    height: 100%;
 }
 
-.application-info {
-    padding: 15px 0;
-    border-top: 1px solid #eee;
+.job-detail strong {
+    overflow-wrap: anywhere;
 }
 
-.application-info h4,
-.interview-section h4 {
-    margin: 0 0 10px;
+.card {
+    border-radius: 0.75rem;
 }
 
-.application-info p {
-    margin: 5px 0;
+textarea {
+    resize: vertical;
 }
 
-.feedback {
-    background: #fff3cd;
-    padding: 15px;
-    border-radius: 8px;
-    border-top: none;
-    margin-bottom: 15px;
-}
-
-.interview-section {
-    margin-top: 15px;
-    padding: 15px;
-    background: #e7f1ff;
-    border-radius: 8px;
-}
-
-.interview-details {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.waiting-message {
-    margin-top: 15px;
-    padding: 12px;
-    background: #f8f9fa;
-    border-radius: 6px;
-    color: #555;
-}
-
-.shortlisted-message {
-    background: #fff3cd;
-    color: #664d03;
-}
-
-.result-message {
-    margin-top: 15px;
-    padding: 12px;
-    border-radius: 6px;
-}
-
-.result-message strong {
-    display: block;
-    margin-bottom: 5px;
-}
-
-.result-message p {
-    margin: 0;
-}
-
-.offer-result {
-    background: #d1e7dd;
-    color: #0f5132;
-}
-
-.placed-result {
-    background: #198754;
-    color: #ffffff;
-}
-
-.placement-details {
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid rgba(255, 255, 255, 0.35);
-}
-
-.placement-details p {
-    margin: 6px 0;
-}
-
-.rejected-result {
-    background: #f8d7da;
-    color: #842029;
-}
-
-
-/* CSV EXPORT */
-
-.export-button {
-    border: none;
-    border-radius: 6px;
-    padding: 10px 18px;
-    background: #198754;
-    color: white;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: bold;
-}
-
-.export-button:hover {
-    opacity: 0.9;
-}
-
-.export-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.export-status {
-    margin: 0 0 20px;
-    padding: 10px 14px;
-    background: #e7f1ff;
-    color: #084298;
-    border-radius: 6px;
-}
-
-
-.message {
-    padding: 20px;
-    text-align: center;
-}
-
-.empty-message {
-    padding: 30px;
-    text-align: center;
-    color: #666;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.error-message {
-    background: #f8d7da;
-    color: #842029;
-    border: 1px solid #f5c2c7;
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-}
-
-.success-message {
-    background: #d1e7dd;
-    color: #0f5132;
-    border: 1px solid #badbcc;
-    padding: 12px;
-    border-radius: 6px;
-    margin-bottom: 20px;
-}
-
-.resume-current {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 15px;
-    flex-wrap: wrap;
-}
-
-.view-resume-button {
-    display: inline-block;
-    padding: 8px 14px;
-    background: #0d6efd;
-    color: white;
-    text-decoration: none;
-    border-radius: 6px;
-    font-size: 13px;
-}
-
-.view-resume-button:hover {
-    opacity: 0.9;
-}
-
-.resume-upload {
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid #ddd;
-}
-
-.resume-upload input[type="file"] {
-    display: block;
-    width: 100%;
-    margin-bottom: 10px;
-}
-
-.selected-file {
-    margin: 8px 0;
-    color: #555;
-    font-size: 14px;
-    word-break: break-word;
-}
-
-.resume-upload-button {
-    border: none;
-    border-radius: 6px;
-    padding: 9px 16px;
-    background: #198754;
-    color: white;
-    cursor: pointer;
-    font-size: 14px;
-    margin-right: 10px;
-}
-
-.resume-upload-button:hover {
-    opacity: 0.9;
-}
-
-.resume-upload-button:disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.resume-upload small {
-    color: #666;
-}
-
-.offer-letter-section {
-    margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid #badbcc;
-}
-
-.offer-letter-section p {
-    margin: 6px 0 10px;
-}
-
-.view-offer-letter-button {
-    border: none;
-    border-radius: 6px;
-    padding: 9px 16px;
-    background: #0d6efd;
-    color: white;
-    cursor: pointer;
-    font-size: 14px;
-}
-
-.view-offer-letter-button:hover {
-    opacity: 0.9;
-}
-
-
-@media (max-width: 900px) {
-
-    .jobs-grid {
-        grid-template-columns: 1fr;
-    }
-
-    .search-panel {
-        grid-template-columns: 1fr 1fr;
-    }
-
-    .application-details {
-        grid-template-columns: 1fr;
-    }
-
-    .application-header {
-        flex-direction: column;
+@media (max-width: 576px) {
+    main {
+        padding-top: 1rem !important;
     }
 }
-
-
-@media (max-width: 700px) {
-
-    .profile-grid,
-    .form-grid,
-    .search-panel {
-        grid-template-columns: 1fr;
-    }
-
-    .profile-item.full-width,
-    .form-group.full-width {
-        grid-column: span 1;
-    }
-
-    .header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 15px;
-    }
-
-    .job-details {
-        grid-template-columns: 1fr;
-    }
-
-    .search-actions {
-        width: 100%;
-    }
-
-    .search-actions button {
-        flex: 1;
-    }
-
-    .section-header {
-        flex-wrap: wrap;
-        gap: 10px;
-    }
-}
-
 </style>

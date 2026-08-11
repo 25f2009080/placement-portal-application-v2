@@ -70,7 +70,7 @@ def get_current_company():
     return user, company, None
 
 
-@cache.memoize(timeout=60)
+
 def get_cached_company_jobs(company_id):
 
     jobs = JobPosition.query.filter_by(

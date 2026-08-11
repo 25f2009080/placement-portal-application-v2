@@ -56,7 +56,6 @@ def get_current_student():
     return user, student, None
 
 
-@cache.memoize(timeout=60)
 def get_cached_student_jobs(
     search,
     company_search,

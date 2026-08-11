@@ -1,4 +1,5 @@
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from app.celery_app import celery
 from app.services.email_service import send_email
@@ -15,7 +16,9 @@ def send_interview_reminders():
 
         from app.models import Application
 
-        now = datetime.now(timezone.utc)
+        india_time = ZoneInfo("Asia/Kolkata")
+
+        now = datetime.now(india_time).replace(tzinfo=None)
 
         reminder_window_start = now + timedelta(hours=23)
         reminder_window_end = now + timedelta(hours=24)

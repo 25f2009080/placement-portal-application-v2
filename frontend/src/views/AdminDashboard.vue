@@ -28,22 +28,30 @@ const studentSearch = ref("");
 const selectedCompany = ref(null);
 
 async function loadDashboard() {
+
     loading.value = true;
     error.value = "";
 
     try {
-        await loadStats();
-        await loadCompanies();
-        await loadStudents();
-        await loadJobs();
-        await loadApplications();
+
+        await Promise.all([
+            loadStats(),
+            loadCompanies(),
+            loadStudents(),
+            loadJobs(),
+            loadApplications()
+        ]);
+
     } catch (err) {
+
         console.error(err);
 
         error.value =
             err.response?.data?.message ||
             "Failed to load admin dashboard.";
+
     } finally {
+
         loading.value = false;
     }
 }

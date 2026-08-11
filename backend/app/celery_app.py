@@ -6,7 +6,6 @@ celery = Celery(
     broker="redis://localhost:6379/0",
     backend="redis://localhost:6379/0",
     include=[
-        "app.tasks.test_task",
         "app.tasks.interview_reminders",
         "app.tasks.reports",
         "app.tasks.exports"

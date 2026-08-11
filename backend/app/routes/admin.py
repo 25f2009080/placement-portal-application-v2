@@ -23,7 +23,6 @@ def admin_required():
     return True
 
 
-@cache.memoize(timeout=60)
 def get_cached_admin_companies(search):
 
     query = Company.query
@@ -65,7 +64,6 @@ def get_cached_admin_companies(search):
 
 
 
-@cache.memoize(timeout=60)
 def get_cached_admin_students(search):
 
     query = Student.query
@@ -107,7 +105,6 @@ def get_cached_admin_students(search):
 
 
 
-@cache.memoize(timeout=60)
 def get_cached_admin_jobs():
 
     jobs = JobPosition.query.order_by(

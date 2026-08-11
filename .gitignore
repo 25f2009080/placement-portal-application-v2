@@ -19,5 +19,5 @@ dist/
 
 .venv/
 
-celerybeat-schedule
-celerybeat-schedule.*
+backend/celerybeat-schedule
+backend/celerybeat-schedule.*

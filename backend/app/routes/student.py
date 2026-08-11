@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import date
-from app import db, cache
+from app import db
 from app.models import User, Student, JobPosition, Application, Placement
 import os
 from werkzeug.utils import secure_filename
@@ -56,7 +56,7 @@ def get_current_student():
     return user, student, None
 
 
-def get_cached_student_jobs(
+def get_student_jobs_data(
     search,
     company_search,
     skills_search
@@ -287,7 +287,7 @@ def get_student_jobs():
     ).strip().lower()
 
 
-    cached_jobs = get_cached_student_jobs(
+    jobs_data = get_student_jobs_data(
         search,
         company_search,
         skills_search
@@ -296,7 +296,7 @@ def get_student_jobs():
     result = []
 
 
-    for job in cached_jobs:
+    for job in jobs_data:
 
         job_id = job["id"]
 
@@ -475,8 +475,6 @@ def apply_for_job(job_id):
     try:
         db.session.add(application)
         db.session.commit()
-
-        get_cached_student_jobs.cache_clear()
 
         return jsonify({
             "success": True,

@@ -5,7 +5,7 @@ from flask import Blueprint, request, jsonify, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import current_app
 from werkzeug.utils import secure_filename
-from app import db, cache
+from app import db
 from app.models import User, Company, JobPosition, Application, Placement
 
 from celery.result import AsyncResult
@@ -313,11 +313,6 @@ def create_job():
         db.session.add(job)
         db.session.commit()
 
-        cache.delete_memoized(
-            get_cached_company_jobs,
-            company.id
-        )
-
         return jsonify({
             "success": True,
             "message": "Job created successfully. Waiting for admin approval.",
@@ -480,11 +475,6 @@ def update_company_job(job_id):
     try:
         db.session.commit()
 
-        cache.delete_memoized(
-            get_cached_company_jobs,
-            company.id
-        )
-
         return jsonify({
             "success": True,
             "message": "Job updated successfully"
@@ -549,11 +539,6 @@ def update_job_status(job_id):
 
     try:
         db.session.commit()
-
-        cache.delete_memoized(
-            get_cached_company_jobs,
-            company.id
-        )
 
         return jsonify({
             "success": True,

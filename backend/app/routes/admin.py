@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 
-from app import db, cache
+from app import db
 from app.models import (
     User,
     Student,
@@ -23,7 +23,7 @@ def admin_required():
     return True
 
 
-def get_cached_admin_companies(search):
+def get_admin_companies(search):
     try:
         query = Company.query
 
@@ -68,7 +68,7 @@ def get_cached_admin_companies(search):
 
 
 
-def get_cached_admin_students(search):
+def get_admin_students(search):
 
     query = Student.query
 
@@ -109,7 +109,7 @@ def get_cached_admin_students(search):
 
 
 
-def get_cached_admin_jobs():
+def get_admin_jobs():
 
     jobs = JobPosition.query.order_by(
         JobPosition.created_at.desc()
@@ -188,7 +188,7 @@ def get_companies():
     try:
         search = request.args.get("search", "").strip().lower()
 
-        companies = get_cached_admin_companies(search)
+        companies = get_admin_companies(search)
 
         return jsonify({
             "success": True,
@@ -335,7 +335,7 @@ def get_students():
         ""
     ).strip().lower()
 
-    students = get_cached_admin_students(search)
+    students = get_admin_students(search)
 
     return jsonify({
         "success": True,
@@ -424,7 +424,7 @@ def get_jobs():
             "message": "Admin access required"
         }), 403
 
-    jobs = get_cached_admin_jobs()
+    jobs = get_admin_jobs()
 
     return jsonify({
         "success": True,

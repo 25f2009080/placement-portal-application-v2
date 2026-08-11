@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import date
-from app import db
+from app import db, cache
 from app.models import User, Student, JobPosition, Application, Placement
 import os
 from werkzeug.utils import secure_filename
@@ -54,6 +54,100 @@ def get_current_student():
         )
 
     return user, student, None
+
+
+@cache.memoize(timeout=60)
+def get_cached_student_jobs(
+    search,
+    company_search,
+    skills_search
+):
+
+    today = date.today()
+
+    jobs = JobPosition.query.filter(
+        JobPosition.status == "Active",
+        JobPosition.deadline >= today,
+        JobPosition.company.has(
+            approved=True,
+            is_active=True
+        )
+    ).order_by(
+        JobPosition.deadline.asc()
+    ).all()
+
+    result = []
+
+    for job in jobs:
+
+        company = job.company
+
+        if not company:
+            continue
+
+        if search:
+            search_matches = (
+                search in (job.title or "").lower()
+                or search in (company.name or "").lower()
+                or search in (job.skills_required or "").lower()
+            )
+
+            if not search_matches:
+                continue
+
+        if company_search:
+            if company_search not in (
+                company.name or ""
+            ).lower():
+                continue
+
+        if skills_search:
+            if skills_search not in (
+                job.skills_required or ""
+            ).lower():
+                continue
+
+        application_count = Application.query.filter_by(
+            job_id=job.id
+        ).count()
+
+        application_limit_reached = (
+            job.application_limit is not None
+            and application_count >= job.application_limit
+        )
+
+        result.append({
+            "id": job.id,
+            "title": job.title,
+            "description": job.description,
+            "location": job.location,
+            "salary": job.salary,
+            "experience": job.experience,
+            "skills_required": job.skills_required,
+            "benefits": job.benefits,
+            "min_cgpa": job.min_cgpa,
+            "deadline": (
+                job.deadline.isoformat()
+                if job.deadline else None
+            ),
+            "application_limit": job.application_limit,
+            "application_count": application_count,
+            "application_limit_reached": (
+                application_limit_reached
+            ),
+            "status": job.status,
+            "company": {
+                "id": company.id,
+                "company_id": company.company_id,
+                "name": company.name,
+                "industry": company.industry,
+                "location": company.location,
+                "website": company.website,
+                "description": company.description
+            }
+        })
+
+    return result
 
 
 @student_bp.route("/api/student/profile", methods=["GET"])
@@ -168,6 +262,7 @@ def update_student_profile():
             "message": "Failed to update student profile"
         }), 500
 
+
 @student_bp.route("/api/student/jobs", methods=["GET"])
 @jwt_required()
 def get_student_jobs():
@@ -177,70 +272,56 @@ def get_student_jobs():
     if error:
         return error
 
-    search = request.args.get("search", "").strip().lower()
-    company_search = request.args.get("company", "").strip().lower()
-    skills_search = request.args.get("skills", "").strip().lower()
+    search = request.args.get(
+        "search",
+        ""
+    ).strip().lower()
 
-    today = date.today()
+    company_search = request.args.get(
+        "company",
+        ""
+    ).strip().lower()
 
-    jobs = JobPosition.query.filter(
-        JobPosition.status == "Active",
-        JobPosition.deadline >= today,
-        JobPosition.company.has(
-            approved=True,
-            is_active=True
-        )
-    ).order_by(
-        JobPosition.deadline.asc()
-    ).all()
+    skills_search = request.args.get(
+        "skills",
+        ""
+    ).strip().lower()
+
+
+    cached_jobs = get_cached_student_jobs(
+        search,
+        company_search,
+        skills_search
+    )
 
     result = []
 
-    for job in jobs:
 
-        company = job.company
+    for job in cached_jobs:
 
-        if not company:
-            continue
-
-        if search:
-            search_matches = (
-                search in (job.title or "").lower()
-                or search in (company.name or "").lower()
-                or search in (job.skills_required or "").lower()
-            )
-
-            if not search_matches:
-                continue
-
-        if company_search:
-            if company_search not in (company.name or "").lower():
-                continue
-
-        if skills_search:
-            if skills_search not in (job.skills_required or "").lower():
-                continue
-
-        application_count = Application.query.filter_by(
-            job_id=job.id
-        ).count()
+        job_id = job["id"]
 
         student_application = Application.query.filter_by(
             student_id=student.id,
-            job_id=job.id
+            job_id=job_id
         ).first()
 
-        application_limit_reached = (
-            job.application_limit is not None
-            and application_count >= job.application_limit
+        already_applied = (
+            student_application is not None
         )
 
-        already_applied = student_application is not None
+        min_cgpa = job["min_cgpa"]
 
         cgpa_eligible = (
-            job.min_cgpa is None
-            or student.cgpa is not None
-            and student.cgpa >= job.min_cgpa
+            min_cgpa is None
+            or (
+                student.cgpa is not None
+                and student.cgpa >= min_cgpa
+            )
+        )
+
+        application_limit_reached = (
+            job["application_limit_reached"]
         )
 
         can_apply = (
@@ -251,49 +332,46 @@ def get_student_jobs():
 
         if already_applied:
             application_message = "Already applied"
+
         elif application_limit_reached:
-            application_message = "Application limit reached"
+            application_message = (
+                "Application limit reached"
+            )
+
         elif not cgpa_eligible:
-            application_message = "CGPA requirement not met"
+            application_message = (
+                "CGPA requirement not met"
+            )
+
         else:
-            application_message = "Eligible to apply"
+            application_message = (
+                "Eligible to apply"
+            )
 
         result.append({
-            "id": job.id,
-            "title": job.title,
-            "description": job.description,
-            "location": job.location,
-            "salary": job.salary,
-            "experience": job.experience,
-            "skills_required": job.skills_required,
-            "benefits": job.benefits,
-            "min_cgpa": job.min_cgpa,
-            "deadline": job.deadline.isoformat()
-                if job.deadline else None,
-            "application_limit": job.application_limit,
-            "application_count": application_count,
-            "application_limit_reached": application_limit_reached,
-            "status": job.status,
-            "already_applied": already_applied,
-            "cgpa_eligible": cgpa_eligible,
-            "can_apply": can_apply,
-            "application_message": application_message,
-            "company": {
-                "id": company.id,
-                "company_id": company.company_id,
-                "name": company.name,
-                "industry": company.industry,
-                "location": company.location,
-                "website": company.website,
-                "description": company.description
-            }
+            **job,
+
+            "already_applied": (
+                already_applied
+            ),
+
+            "cgpa_eligible": (
+                cgpa_eligible
+            ),
+
+            "can_apply": (
+                can_apply
+            ),
+
+            "application_message": (
+                application_message
+            )
         })
 
     return jsonify({
         "success": True,
         "jobs": result
     }), 200
-
 
 
 @student_bp.route(
@@ -398,6 +476,8 @@ def apply_for_job(job_id):
     try:
         db.session.add(application)
         db.session.commit()
+
+        get_cached_student_jobs.cache_clear()
 
         return jsonify({
             "success": True,
@@ -546,7 +626,6 @@ def view_offer_letter(application_id):
             "message": "Application not found"
         }), 404
 
-    # A student can only access their own application.
     if application.student_id != student.id:
         return jsonify({
             "success": False,
@@ -692,7 +771,6 @@ def upload_resume():
             "success": False,
             "message": "Failed to upload resume"
         }), 500
-
 
 
 @student_bp.route(

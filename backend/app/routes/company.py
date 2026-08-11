@@ -1,11 +1,11 @@
-from datetime import datetime,UTC
+from datetime import datetime, UTC
 import os
 
 from flask import Blueprint, request, jsonify, send_from_directory
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import current_app
 from werkzeug.utils import secure_filename
-from app import db
+from app import db, cache
 from app.models import User, Company, JobPosition, Application, Placement
 
 from celery.result import AsyncResult
@@ -68,6 +68,45 @@ def get_current_company():
         )
 
     return user, company, None
+
+
+@cache.memoize(timeout=60)
+def get_cached_company_jobs(company_id):
+
+    jobs = JobPosition.query.filter_by(
+        company_id=company_id
+    ).order_by(
+        JobPosition.created_at.desc()
+    ).all()
+
+    return [
+        {
+            "id": job.id,
+            "title": job.title,
+            "description": job.description,
+            "location": job.location,
+            "salary": job.salary,
+            "experience": job.experience,
+            "skills_required": job.skills_required,
+            "benefits": job.benefits,
+            "min_cgpa": job.min_cgpa,
+            "deadline": (
+                job.deadline.isoformat()
+                if job.deadline else None
+            ),
+            "application_limit": job.application_limit,
+            "status": job.status,
+            "created_at": (
+                job.created_at.isoformat()
+                if job.created_at else None
+            ),
+            "updated_at": (
+                job.updated_at.isoformat()
+                if job.updated_at else None
+            )
+        }
+        for job in jobs
+    ]
 
 
 @company_bp.route("/api/company/profile", methods=["GET"])
@@ -274,6 +313,11 @@ def create_job():
         db.session.add(job)
         db.session.commit()
 
+        cache.delete_memoized(
+            get_cached_company_jobs,
+            company.id
+        )
+
         return jsonify({
             "success": True,
             "message": "Job created successfully. Waiting for admin approval.",
@@ -292,6 +336,7 @@ def create_job():
             "message": "Failed to create job"
         }), 500
 
+
 @company_bp.route("/api/company/jobs", methods=["GET"])
 @jwt_required()
 def get_company_jobs():
@@ -301,36 +346,13 @@ def get_company_jobs():
     if error:
         return error
 
-    jobs = JobPosition.query.filter_by(
-        company_id=company.id
-    ).order_by(
-        JobPosition.created_at.desc()
-    ).all()
+    jobs = get_cached_company_jobs(company.id)
 
     return jsonify({
         "success": True,
-        "jobs": [
-            {
-                "id": job.id,
-                "title": job.title,
-                "description": job.description,
-                "location": job.location,
-                "salary": job.salary,
-                "experience": job.experience,
-                "skills_required": job.skills_required,
-                "benefits": job.benefits,
-                "min_cgpa": job.min_cgpa,
-                "deadline": job.deadline.isoformat(),
-                "application_limit": job.application_limit,
-                "status": job.status,
-                "created_at": job.created_at.isoformat()
-                    if job.created_at else None,
-                "updated_at": job.updated_at.isoformat()
-                    if job.updated_at else None
-            }
-            for job in jobs
-        ]
+        "jobs": jobs
     }), 200
+
 
 @company_bp.route("/api/company/jobs/<int:job_id>", methods=["PUT"])
 @jwt_required()
@@ -458,6 +480,11 @@ def update_company_job(job_id):
     try:
         db.session.commit()
 
+        cache.delete_memoized(
+            get_cached_company_jobs,
+            company.id
+        )
+
         return jsonify({
             "success": True,
             "message": "Job updated successfully"
@@ -470,6 +497,7 @@ def update_company_job(job_id):
             "success": False,
             "message": "Failed to update job"
         }), 500
+
 
 @company_bp.route(
     "/api/company/jobs/<int:job_id>/status",
@@ -522,6 +550,11 @@ def update_job_status(job_id):
     try:
         db.session.commit()
 
+        cache.delete_memoized(
+            get_cached_company_jobs,
+            company.id
+        )
+
         return jsonify({
             "success": True,
             "message": f"Job status changed to {new_status}",
@@ -535,6 +568,7 @@ def update_job_status(job_id):
             "success": False,
             "message": "Failed to update job status"
         }), 500
+
 
 @company_bp.route(
     "/api/company/jobs/<int:job_id>/applications",
@@ -612,6 +646,7 @@ def get_job_applications(job_id):
         },
         "applications": result
     }), 200
+
 
 @company_bp.route(
     "/api/company/applications/<int:application_id>/status",
@@ -750,6 +785,7 @@ def view_applicant_resume(application_id):
         current_app.config["UPLOAD_FOLDER"],
         student.resume
     )
+
 
 @company_bp.route(
     "/api/company/applications/<int:application_id>/interview",
@@ -931,7 +967,6 @@ def update_final_application_status(application_id):
             )
         }), 400
 
-
     if request.content_type and request.content_type.startswith(
         "multipart/form-data"
     ):
@@ -969,7 +1004,6 @@ def update_final_application_status(application_id):
             )
         }), 400
 
-
     if new_status == "Rejected":
 
         if not remarks:
@@ -1006,7 +1040,6 @@ def update_final_application_status(application_id):
                     "Failed to update application status"
                 )
             }), 500
-
 
     if offer_letter is None or not offer_letter.filename:
         return jsonify({
@@ -1255,7 +1288,6 @@ def mark_application_placed(application_id):
             )
         }), 404
 
-
     if placement.placed_at:
         application.status = "Placed"
 
@@ -1297,7 +1329,6 @@ def mark_application_placed(application_id):
                     "Failed to synchronize placement status"
                 )
             }), 500
-
 
     application.status = "Placed"
     placement.placed_at = datetime.now(UTC)

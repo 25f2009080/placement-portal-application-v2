@@ -15,3 +15,6 @@ class Config:
     UPLOAD_FOLDER = os.path.join(BASE_DIR, "app", "uploads")
 
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024     #5MB Limit
+
+    CACHE_TYPE = "RedisCache"
+    CACHE_REDIS_URL = "redis://localhost:6379/1"

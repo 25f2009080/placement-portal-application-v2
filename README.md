@@ -25,3 +25,4 @@ Improvement over PPA v1 in terms of UI, Performance, and Features
 17. Company Dash student application time format (FIXED)
 18. Resume in application.  (FIXED)
 19. Application Time wrong (FIXED)
+20. Requirements.txt update.

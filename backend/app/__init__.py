@@ -7,12 +7,14 @@ from flask_bcrypt import Bcrypt
 from flask_jwt_extended import JWTManager
 
 from dotenv import load_dotenv
+from flask_caching import Cache
 
 load_dotenv()
 
 db = SQLAlchemy()
 bcrypt = Bcrypt()
 jwt = JWTManager()
+cache = Cache()
 
 
 def create_app():
@@ -25,6 +27,7 @@ def create_app():
     db.init_app(app)
     bcrypt.init_app(app)
     jwt.init_app(app)
+    cache.init_app(app)
 
     os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 

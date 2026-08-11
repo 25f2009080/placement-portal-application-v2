@@ -18,3 +18,6 @@ dist/
 .env.local
 
 .venv/
+
+celerybeat-schedule
+celerybeat-schedule.*

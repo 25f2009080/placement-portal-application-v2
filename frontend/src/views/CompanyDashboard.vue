@@ -76,7 +76,7 @@ function loadProfileForm() {
 }
 
 
-async function fetchCompanyProfile() {
+async function fetchCompanyProfile(showError = true) {
     try {
         const response = await api.get("/api/company/profile");
 
@@ -84,16 +84,20 @@ async function fetchCompanyProfile() {
         loadProfileForm();
 
     } catch (err) {
-        error.value =
-            err.response?.data?.message ||
-            "Failed to load company profile.";
+        console.error("Failed to load company profile:", err);
+
+        if (showError) {
+            error.value =
+                err.response?.data?.message ||
+                "Failed to load company profile.";
+        }
     } finally {
         loading.value = false;
     }
 }
 
 
-async function fetchJobs() {
+async function fetchJobs(showError = true) {
     jobsLoading.value = true;
 
     try {
@@ -102,15 +106,19 @@ async function fetchJobs() {
         jobs.value = response.data.jobs;
 
     } catch (err) {
-        error.value =
-            err.response?.data?.message ||
-            "Failed to load jobs.";
+        console.error("Failed to load jobs:", err);
+
+        if (showError) {
+            error.value =
+                err.response?.data?.message ||
+                "Failed to load jobs.";
+        }
     } finally {
         jobsLoading.value = false;
     }
 }
 
-async function viewApplicants(job) {
+async function viewApplicants(job, showError = true) {
     error.value = "";
     success.value = "";
 
@@ -126,9 +134,13 @@ async function viewApplicants(job) {
         applications.value = response.data.applications;
 
     } catch (err) {
-        error.value =
-            err.response?.data?.message ||
-            "Failed to load applicants.";
+        console.error("Failed to load applicants:", err);
+
+        if (showError) {
+            error.value =
+                err.response?.data?.message ||
+                "Failed to load applicants.";
+        }
     } finally {
         applicationsLoading.value = false;
     }
@@ -175,13 +187,16 @@ async function updateApplicationStatus(
 
         success.value = response.data.message;
 
-        await viewApplicants(selectedJob.value);
-
     } catch (err) {
         error.value =
             err.response?.data?.message ||
             "Failed to update application.";
+        return;
     }
+
+    // The status update succeeded. A refresh failure must not
+    // turn the successful action into a false error.
+    await viewApplicants(selectedJob.value, false);
 }
 
 
@@ -294,13 +309,14 @@ async function scheduleInterview(application) {
 
         success.value = response.data.message;
 
-        await viewApplicants(selectedJob.value);
-
     } catch (err) {
         error.value =
             err.response?.data?.message ||
             "Failed to schedule interview.";
+        return;
     }
+
+    await viewApplicants(selectedJob.value, false);
 }
 
 
@@ -401,13 +417,14 @@ async function updateFinalStatus(
         offerLetterInputKey.value[application.id] =
             (offerLetterInputKey.value[application.id] || 0) + 1;
 
-        await viewApplicants(selectedJob.value);
-
     } catch (err) {
         error.value =
             err.response?.data?.message ||
             "Failed to update final status.";
+        return;
     }
+
+    await viewApplicants(selectedJob.value, false);
 }
 
 
@@ -422,13 +439,14 @@ async function markAsPlaced(application) {
 
         success.value = response.data.message;
 
-        await viewApplicants(selectedJob.value);
-
     } catch (err) {
         error.value =
             err.response?.data?.message ||
             "Failed to mark applicant as placed.";
+        return;
     }
+
+    await viewApplicants(selectedJob.value, false);
 }
 
 
@@ -460,16 +478,18 @@ async function updateCompanyProfile() {
         );
 
         success.value = response.data.message;
-
         editing.value = false;
-
-        await fetchCompanyProfile();
 
     } catch (err) {
         error.value =
             err.response?.data?.message ||
             "Failed to update company profile.";
+        return;
     }
+
+    // Profile update succeeded. Refresh separately so a refresh
+    // failure cannot report the successful update as failed.
+    await fetchCompanyProfile(false);
 }
 
 
@@ -523,16 +543,16 @@ async function createJob() {
         success.value = response.data.message;
 
         creatingJob.value = false;
-
         resetJobForm();
-
-        await fetchJobs();
 
     } catch (err) {
         error.value =
             err.response?.data?.message ||
             "Failed to create job.";
+        return;
     }
+
+    await fetchJobs(false);
 }
 
 
@@ -572,16 +592,16 @@ async function updateJob() {
 
         creatingJob.value = false;
         editingJob.value = null;
-
         resetJobForm();
-
-        await fetchJobs();
 
     } catch (err) {
         error.value =
             err.response?.data?.message ||
             "Failed to update job.";
+        return;
     }
+
+    await fetchJobs(false);
 }
 
 
@@ -604,13 +624,14 @@ async function changeJobStatus(job) {
 
         success.value = response.data.message;
 
-        await fetchJobs();
-
     } catch (err) {
         error.value =
             err.response?.data?.message ||
             "Failed to change job status.";
+        return;
     }
+
+    await fetchJobs(false);
 }
 
 
@@ -662,13 +683,11 @@ function pollExportStatus() {
 
 
 async function checkExportStatus() {
-
     if (!exportTaskId.value) {
         return;
     }
 
     try {
-
         const response = await api.get(
             `/api/company/export-history/status/${exportTaskId.value}`
         );
@@ -679,29 +698,36 @@ async function checkExportStatus() {
             status === "PENDING" ||
             status === "STARTED"
         ) {
-
             exportStatus.value =
                 "Export is still being prepared...";
 
             pollExportStatus();
-
             return;
         }
 
         if (status === "SUCCESS") {
-
             exportStatus.value =
                 "Export completed. Downloading...";
 
-            await downloadExport();
+            try {
+                await downloadExport();
 
-            exportLoading.value = false;
+                exportLoading.value = false;
+                exportStatus.value =
+                    "CSV export completed successfully.";
 
-            exportStatus.value =
-                "CSV export completed successfully.";
+                success.value =
+                    `Export completed. ${response.data.records || 0} records exported.`;
+            } catch (err) {
+                console.error("Export generated but download failed:", err);
 
-            success.value =
-                `Export completed. ${response.data.records || 0} records exported.`;
+                exportLoading.value = false;
+                exportStatus.value = "";
+
+                error.value =
+                    err.response?.data?.message ||
+                    "Export was generated, but the CSV could not be downloaded.";
+            }
 
             return;
         }
@@ -714,7 +740,6 @@ async function checkExportStatus() {
             "CSV export failed.";
 
     } catch (err) {
-
         exportLoading.value = false;
         exportStatus.value = "";
 

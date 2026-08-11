@@ -111,26 +111,43 @@ async function searchCompanies() {
     }
 }
 
+async function refreshAfterAction(action, ...loaders) {
+    for (const loader of loaders) {
+        try {
+            await loader();
+        } catch (err) {
+            console.error(
+                `Action "${action}" succeeded, but refresh failed:`,
+                err
+            );
+        }
+    }
+}
+
 async function approveCompany(company) {
     try {
         await api.put(
             `/api/admin/company/${company.id}/approve`
         );
-
-        await loadCompanies();
-        await loadStats();
     } catch (err) {
+        console.error("Failed to approve company:", err);
+
         alert(
             err.response?.data?.message ||
             "Failed to approve company."
         );
+        return;
     }
+
+    await refreshAfterAction(
+        "approve company",
+        loadCompanies,
+        loadStats
+    );
 }
 
 async function revokeCompanyApproval(company) {
-    if (!confirm(
-        `Revoke approval for ${company.name}?`
-    )) {
+    if (!confirm(`Revoke approval for ${company.name}?`)) {
         return;
     }
 
@@ -138,21 +155,25 @@ async function revokeCompanyApproval(company) {
         await api.put(
             `/api/admin/company/${company.id}/revoke`
         );
-
-        await loadCompanies();
-        await loadStats();
     } catch (err) {
+        console.error("Failed to revoke company approval:", err);
+
         alert(
             err.response?.data?.message ||
             "Failed to revoke company approval."
         );
+        return;
     }
+
+    await refreshAfterAction(
+        "revoke company approval",
+        loadCompanies,
+        loadStats
+    );
 }
 
 async function deactivateCompany(company) {
-    if (!confirm(
-        `Deactivate ${company.name}?`
-    )) {
+    if (!confirm(`Deactivate ${company.name}?`)) {
         return;
     }
 
@@ -160,15 +181,21 @@ async function deactivateCompany(company) {
         await api.put(
             `/api/admin/company/${company.id}/deactivate`
         );
-
-        await loadCompanies();
-        await loadJobs();
     } catch (err) {
+        console.error("Failed to deactivate company:", err);
+
         alert(
             err.response?.data?.message ||
             "Failed to deactivate company."
         );
+        return;
     }
+
+    await refreshAfterAction(
+        "deactivate company",
+        loadCompanies,
+        loadJobs
+    );
 }
 
 async function activateCompany(company) {
@@ -176,14 +203,20 @@ async function activateCompany(company) {
         await api.put(
             `/api/admin/company/${company.id}/activate`
         );
-
-        await loadCompanies();
     } catch (err) {
+        console.error("Failed to activate company:", err);
+
         alert(
             err.response?.data?.message ||
             "Failed to activate company."
         );
+        return;
     }
+
+    await refreshAfterAction(
+        "activate company",
+        loadCompanies
+    );
 }
 
 function viewCompanyDetails(company) {
@@ -216,9 +249,7 @@ async function searchStudents() {
 }
 
 async function deactivateStudent(student) {
-    if (!confirm(
-        `Blacklist ${student.name}?`
-    )) {
+    if (!confirm(`Blacklist ${student.name}?`)) {
         return;
     }
 
@@ -226,14 +257,20 @@ async function deactivateStudent(student) {
         await api.put(
             `/api/admin/student/${student.id}/deactivate`
         );
-
-        await loadStudents();
     } catch (err) {
+        console.error("Failed to blacklist student:", err);
+
         alert(
             err.response?.data?.message ||
             "Failed to blacklist student."
         );
+        return;
     }
+
+    await refreshAfterAction(
+        "blacklist student",
+        loadStudents
+    );
 }
 
 async function activateStudent(student) {
@@ -241,14 +278,20 @@ async function activateStudent(student) {
         await api.put(
             `/api/admin/student/${student.id}/activate`
         );
-
-        await loadStudents();
     } catch (err) {
+        console.error("Failed to activate student:", err);
+
         alert(
             err.response?.data?.message ||
             "Failed to activate student."
         );
+        return;
     }
+
+    await refreshAfterAction(
+        "activate student",
+        loadStudents
+    );
 }
 
 async function loadJobs() {
@@ -264,20 +307,24 @@ async function approveJob(job) {
         await api.put(
             `/api/admin/job/${job.id}/approve`
         );
-
-        await loadJobs();
     } catch (err) {
+        console.error("Failed to approve job:", err);
+
         alert(
             err.response?.data?.message ||
             "Failed to approve job."
         );
+        return;
     }
+
+    await refreshAfterAction(
+        "approve job",
+        loadJobs
+    );
 }
 
 async function rejectJob(job) {
-    if (!confirm(
-        `Reject "${job.title}"?`
-    )) {
+    if (!confirm(`Reject "${job.title}"?`)) {
         return;
     }
 
@@ -285,20 +332,24 @@ async function rejectJob(job) {
         await api.put(
             `/api/admin/job/${job.id}/reject`
         );
-
-        await loadJobs();
     } catch (err) {
+        console.error("Failed to reject job:", err);
+
         alert(
             err.response?.data?.message ||
             "Failed to reject job."
         );
+        return;
     }
+
+    await refreshAfterAction(
+        "reject job",
+        loadJobs
+    );
 }
 
 async function deactivateJob(job) {
-    if (!confirm(
-        `Deactivate "${job.title}"?`
-    )) {
+    if (!confirm(`Deactivate "${job.title}"?`)) {
         return;
     }
 
@@ -306,14 +357,20 @@ async function deactivateJob(job) {
         await api.put(
             `/api/admin/job/${job.id}/deactivate`
         );
-
-        await loadJobs();
     } catch (err) {
+        console.error("Failed to deactivate job:", err);
+
         alert(
             err.response?.data?.message ||
             "Failed to deactivate job."
         );
+        return;
     }
+
+    await refreshAfterAction(
+        "deactivate job",
+        loadJobs
+    );
 }
 
 async function activateJob(job) {
@@ -321,14 +378,20 @@ async function activateJob(job) {
         await api.put(
             `/api/admin/job/${job.id}/activate`
         );
-
-        await loadJobs();
     } catch (err) {
+        console.error("Failed to activate job:", err);
+
         alert(
             err.response?.data?.message ||
             "Failed to activate job."
         );
+        return;
     }
+
+    await refreshAfterAction(
+        "activate job",
+        loadJobs
+    );
 }
 
 function getJobStatusClass(status) {

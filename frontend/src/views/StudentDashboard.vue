@@ -39,7 +39,7 @@ const editForm = ref({
     experience: ""
 });
 
-const loadProfile = async () => {
+const loadProfile = async (showError = true) => {
     loading.value = true;
     errorMessage.value = "";
 
@@ -58,15 +58,19 @@ const loadProfile = async () => {
             experience: student.value.experience || ""
         };
     } catch (error) {
-        errorMessage.value =
-            error.response?.data?.message ||
-            "Failed to load student profile.";
+        console.error("Failed to load student profile:", error);
+
+        if (showError) {
+            errorMessage.value =
+                error.response?.data?.message ||
+                "Failed to load student profile.";
+        }
     } finally {
         loading.value = false;
     }
-};
+};;
 
-const loadJobs = async () => {
+const loadJobs = async (showError = true) => {
     jobsLoading.value = true;
     errorMessage.value = "";
 
@@ -84,15 +88,19 @@ const loadJobs = async () => {
 
         jobs.value = response.data.jobs;
     } catch (error) {
-        errorMessage.value =
-            error.response?.data?.message ||
-            "Failed to load jobs.";
+        console.error("Failed to load jobs:", error);
+
+        if (showError) {
+            errorMessage.value =
+                error.response?.data?.message ||
+                "Failed to load jobs.";
+        }
     } finally {
         jobsLoading.value = false;
     }
-};
+};;
 
-const loadApplications = async () => {
+const loadApplications = async (showError = true) => {
     applicationsLoading.value = true;
     errorMessage.value = "";
 
@@ -103,13 +111,17 @@ const loadApplications = async () => {
 
         applications.value = response.data.applications;
     } catch (error) {
-        errorMessage.value =
-            error.response?.data?.message ||
-            "Failed to load applications.";
+        console.error("Failed to load applications:", error);
+
+        if (showError) {
+            errorMessage.value =
+                error.response?.data?.message ||
+                "Failed to load applications.";
+        }
     } finally {
         applicationsLoading.value = false;
     }
-};
+};;
 
 const applyForJob = async (job) => {
     if (!job.can_apply) {
@@ -128,17 +140,21 @@ const applyForJob = async (job) => {
         successMessage.value =
             response.data.message ||
             "Application submitted successfully.";
-
-        await loadJobs();
-        await loadApplications();
     } catch (error) {
         errorMessage.value =
             error.response?.data?.message ||
             "Failed to submit application.";
-    } finally {
         applyingJobId.value = null;
+        return;
     }
-};
+
+    // Application succeeded. Refreshes are separate so a refresh
+    // failure cannot turn the successful application into a false error.
+    await loadJobs(false);
+    await loadApplications(false);
+
+    applyingJobId.value = null;
+};;
 
 const selectResume = (event) => {
     const file = event.target.files[0];
@@ -210,8 +226,6 @@ const uploadResume = async () => {
         if (resumeInput.value) {
             resumeInput.value.value = "";
         }
-
-        await loadProfile();
     } catch (error) {
         if (error.response?.status === 413) {
             errorMessage.value =
@@ -221,10 +235,16 @@ const uploadResume = async () => {
                 error.response?.data?.message ||
                 "Failed to upload resume.";
         }
-    } finally {
+
         resumeUploading.value = false;
+        return;
     }
-};
+
+    // Upload succeeded. Profile refresh is independent from the upload.
+    await loadProfile(false);
+
+    resumeUploading.value = false;
+};;
 
 const viewResume = async () => {
     errorMessage.value = "";
@@ -471,15 +491,25 @@ const checkExportStatus = async () => {
             exportStatus.value =
                 "Export completed. Downloading...";
 
-            await downloadExport();
+            try {
+                await downloadExport();
 
-            exportLoading.value = false;
+                exportLoading.value = false;
+                exportStatus.value =
+                    "CSV export completed successfully.";
 
-            exportStatus.value =
-                "CSV export completed successfully.";
+                successMessage.value =
+                    `Export completed. ${response.data.records || 0} records exported.`;
+            } catch (error) {
+                console.error("Export generated but download failed:", error);
 
-            successMessage.value =
-                `Export completed. ${response.data.records || 0} records exported.`;
+                exportLoading.value = false;
+                exportStatus.value = "";
+
+                errorMessage.value =
+                    error.response?.data?.message ||
+                    "Export was generated, but the CSV could not be downloaded.";
+            }
 
             return;
         }
@@ -498,7 +528,7 @@ const checkExportStatus = async () => {
             error.response?.data?.message ||
             "Failed to check export status.";
     }
-};
+};;
 
 const downloadExport = async () => {
     const response = await api.get(

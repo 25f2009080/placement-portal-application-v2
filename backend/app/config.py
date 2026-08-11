@@ -16,5 +16,6 @@ class Config:
 
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024     #5MB Limit
 
-    CACHE_TYPE = "SimpleCache"
+    CACHE_TYPE = "RedisCache"
     CACHE_DEFAULT_TIMEOUT = 60
+    CACHE_REDIS_URL = "redis://127.0.0.1:6379/1"

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt
 
-from app import db
+from app import db, cache
 from app.models import (
     User,
     Student,
@@ -23,7 +23,44 @@ def admin_required():
     return True
 
 
-def get_admin_companies(search):
+
+
+CACHE_TIMEOUT = 60
+
+
+def invalidate_admin_cache():
+    """
+    Invalidate all cached admin data.
+
+    We use delete_memoized() instead of cache.clear()
+    so that Student/Company caches outside this file are
+    not accidentally deleted.
+    """
+
+    cache.delete_memoized(get_admin_dashboard_data)
+    cache.delete_memoized(get_admin_companies)
+    cache.delete_memoized(get_admin_students)
+    cache.delete_memoized(get_admin_jobs)
+    cache.delete_memoized(get_admin_applications)
+
+
+
+
+@cache.memoize(timeout=CACHE_TIMEOUT)
+def get_admin_dashboard_data():
+
+    return {
+        "total_students": Student.query.count(),
+        "total_companies": Company.query.count(),
+        "total_jobs": JobPosition.query.count(),
+        "total_applications": Application.query.count()
+    }
+
+
+
+@cache.memoize(timeout=CACHE_TIMEOUT)
+def get_admin_companies(search=""):
+
     try:
         query = Company.query
 
@@ -56,19 +93,24 @@ def get_admin_companies(search):
                 "is_active": bool(company.is_active),
                 "created_at": (
                     company.created_at.isoformat()
-                    if company.created_at else None
+                    if company.created_at
+                    else None
                 )
             })
 
         return result
 
     except Exception as e:
-        print("ERROR loading admin companies:", repr(e))
+        print(
+            "ERROR loading admin companies:",
+            repr(e)
+        )
         raise
 
 
 
-def get_admin_students(search):
+@cache.memoize(timeout=CACHE_TIMEOUT)
+def get_admin_students(search=""):
 
     query = Student.query
 
@@ -98,10 +140,11 @@ def get_admin_students(search):
             "skills": student.skills,
             "education": student.education,
             "resume": student.resume,
-            "is_active": student.is_active,
+            "is_active": bool(student.is_active),
             "created_at": (
                 student.created_at.isoformat()
-                if student.created_at else None
+                if student.created_at
+                else None
             )
         })
 
@@ -109,6 +152,7 @@ def get_admin_students(search):
 
 
 
+@cache.memoize(timeout=CACHE_TIMEOUT)
 def get_admin_jobs():
 
     jobs = JobPosition.query.order_by(
@@ -128,19 +172,24 @@ def get_admin_jobs():
             "skills_required": job.skills_required,
             "deadline": (
                 job.deadline.isoformat()
-                if job.deadline else None
+                if job.deadline
+                else None
             ),
             "application_limit": job.application_limit,
             "status": job.status,
+
             "company": {
                 "id": job.company.id,
                 "company_id": job.company.company_id,
                 "name": job.company.name
             } if job.company else None,
+
             "application_count": len(job.applications),
+
             "created_at": (
                 job.created_at.isoformat()
-                if job.created_at else None
+                if job.created_at
+                else None
             )
         })
 
@@ -148,7 +197,53 @@ def get_admin_jobs():
 
 
 
-@admin_bp.route("/api/admin/dashboard", methods=["GET"])
+@cache.memoize(timeout=CACHE_TIMEOUT)
+def get_admin_applications():
+
+    applications = Application.query.order_by(
+        Application.applied_at.desc()
+    ).all()
+
+    result = []
+
+    for application in applications:
+
+        result.append({
+            "id": application.id,
+            "status": application.status,
+            "remarks": application.remarks,
+
+            "applied_at": (
+                application.applied_at.isoformat()
+                if application.applied_at
+                else None
+            ),
+
+            "student": {
+                "id": application.student.id,
+                "student_id": application.student.student_id,
+                "name": application.student.name
+            } if application.student else None,
+
+            "job": {
+                "id": application.job.id,
+                "title": application.job.title,
+                "company": (
+                    application.job.company.name
+                    if application.job.company
+                    else None
+                )
+            } if application.job else None
+        })
+
+    return result
+
+
+
+@admin_bp.route(
+    "/api/admin/dashboard",
+    methods=["GET"]
+)
 @jwt_required()
 def dashboard():
 
@@ -158,24 +253,32 @@ def dashboard():
             "message": "Admin access required"
         }), 403
 
-    total_students = Student.query.count()
-    total_companies = Company.query.count()
-    total_jobs = JobPosition.query.count()
-    total_applications = Application.query.count()
+    try:
+        stats = get_admin_dashboard_data()
 
-    return jsonify({
-        "success": True,
-        "stats": {
-            "total_students": total_students,
-            "total_companies": total_companies,
-            "total_jobs": total_jobs,
-            "total_applications": total_applications
-        }
-    }), 200
+        return jsonify({
+            "success": True,
+            "stats": stats
+        }), 200
+
+    except Exception as e:
+        print(
+            "ADMIN DASHBOARD ERROR:",
+            repr(e)
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Failed to load admin dashboard",
+            "error": str(e)
+        }), 500
 
 
 
-@admin_bp.route("/api/admin/companies", methods=["GET"])
+@admin_bp.route(
+    "/api/admin/companies",
+    methods=["GET"]
+)
 @jwt_required()
 def get_companies():
 
@@ -186,7 +289,10 @@ def get_companies():
         }), 403
 
     try:
-        search = request.args.get("search", "").strip().lower()
+        search = request.args.get(
+            "search",
+            ""
+        ).strip().lower()
 
         companies = get_admin_companies(search)
 
@@ -196,7 +302,10 @@ def get_companies():
         }), 200
 
     except Exception as e:
-        print("ADMIN COMPANIES ERROR:", repr(e))
+        print(
+            "ADMIN COMPANIES ERROR:",
+            repr(e)
+        )
 
         return jsonify({
             "success": False,
@@ -234,6 +343,7 @@ def approve_company(company_id):
 
     db.session.commit()
 
+    invalidate_admin_cache()
 
     return jsonify({
         "success": True,
@@ -274,6 +384,7 @@ def deactivate_company(company_id):
 
     db.session.commit()
 
+    invalidate_admin_cache()
 
     return jsonify({
         "success": True,
@@ -312,6 +423,7 @@ def activate_company(company_id):
 
     db.session.commit()
 
+    invalidate_admin_cache()
 
     return jsonify({
         "success": True,
@@ -319,8 +431,47 @@ def activate_company(company_id):
     }), 200
 
 
+@admin_bp.route(
+    "/api/admin/company/<int:company_id>/revoke",
+    methods=["PUT"]
+)
+@jwt_required()
+def revoke_company_approval(company_id):
 
-@admin_bp.route("/api/admin/students", methods=["GET"])
+    if not admin_required():
+        return jsonify({
+            "success": False,
+            "message": "Admin access required"
+        }), 403
+
+    company = db.session.get(
+        Company,
+        company_id
+    )
+
+    if not company:
+        return jsonify({
+            "success": False,
+            "message": "Company not found"
+        }), 404
+
+    company.approved = False
+
+    db.session.commit()
+
+    invalidate_admin_cache()
+
+    return jsonify({
+        "success": True,
+        "message": "Company approval revoked successfully"
+    }), 200
+
+
+
+@admin_bp.route(
+    "/api/admin/students",
+    methods=["GET"]
+)
 @jwt_required()
 def get_students():
 
@@ -330,17 +481,30 @@ def get_students():
             "message": "Admin access required"
         }), 403
 
-    search = request.args.get(
-        "search",
-        ""
-    ).strip().lower()
+    try:
+        search = request.args.get(
+            "search",
+            ""
+        ).strip().lower()
 
-    students = get_admin_students(search)
+        students = get_admin_students(search)
 
-    return jsonify({
-        "success": True,
-        "students": students
-    }), 200
+        return jsonify({
+            "success": True,
+            "students": students
+        }), 200
+
+    except Exception as e:
+        print(
+            "ADMIN STUDENTS ERROR:",
+            repr(e)
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Failed to load students",
+            "error": str(e)
+        }), 500
 
 
 @admin_bp.route(
@@ -371,6 +535,7 @@ def deactivate_student(student_id):
 
     db.session.commit()
 
+    invalidate_admin_cache()
 
     return jsonify({
         "success": True,
@@ -406,6 +571,7 @@ def activate_student(student_id):
 
     db.session.commit()
 
+    invalidate_admin_cache()
 
     return jsonify({
         "success": True,
@@ -414,7 +580,10 @@ def activate_student(student_id):
 
 
 
-@admin_bp.route("/api/admin/jobs", methods=["GET"])
+@admin_bp.route(
+    "/api/admin/jobs",
+    methods=["GET"]
+)
 @jwt_required()
 def get_jobs():
 
@@ -424,12 +593,25 @@ def get_jobs():
             "message": "Admin access required"
         }), 403
 
-    jobs = get_admin_jobs()
+    try:
+        jobs = get_admin_jobs()
 
-    return jsonify({
-        "success": True,
-        "jobs": jobs
-    }), 200
+        return jsonify({
+            "success": True,
+            "jobs": jobs
+        }), 200
+
+    except Exception as e:
+        print(
+            "ADMIN JOBS ERROR:",
+            repr(e)
+        )
+
+        return jsonify({
+            "success": False,
+            "message": "Failed to load jobs",
+            "error": str(e)
+        }), 500
 
 
 @admin_bp.route(
@@ -461,6 +643,7 @@ def approve_job(job_id):
 
     db.session.commit()
 
+    invalidate_admin_cache()
 
     return jsonify({
         "success": True,
@@ -478,7 +661,7 @@ def reject_job(job_id):
     if not admin_required():
         return jsonify({
             "success": False,
-            "message": "Admin Access Required"
+            "message": "Admin access required"
         }), 403
 
     job = db.session.get(
@@ -497,6 +680,7 @@ def reject_job(job_id):
 
     db.session.commit()
 
+    invalidate_admin_cache()
 
     return jsonify({
         "success": True,
@@ -533,6 +717,7 @@ def deactivate_job(job_id):
 
     db.session.commit()
 
+    invalidate_admin_cache()
 
     return jsonify({
         "success": True,
@@ -575,43 +760,11 @@ def activate_job(job_id):
 
     db.session.commit()
 
+    invalidate_admin_cache()
+
     return jsonify({
         "success": True,
         "message": "Job posting reactivated successfully"
-    }), 200
-
-
-@admin_bp.route(
-    "/api/admin/company/<int:company_id>/revoke",
-    methods=["PUT"]
-)
-@jwt_required()
-def revoke_company_approval(company_id):
-
-    if not admin_required():
-        return jsonify({
-            "success": False,
-            "message": "Admin access required"
-        }), 403
-
-    company = db.session.get(
-        Company,
-        company_id
-    )
-
-    if not company:
-        return jsonify({
-            "success": False,
-            "message": "Company not found"
-        }), 404
-
-    company.approved = False
-
-    db.session.commit()
-
-    return jsonify({
-        "success": True,
-        "message": "Company approval revoked successfully"
     }), 200
 
 
@@ -629,40 +782,22 @@ def get_applications():
             "message": "Admin access required"
         }), 403
 
-    applications = Application.query.order_by(
-        Application.applied_at.desc()
-    ).all()
+    try:
+        applications = get_admin_applications()
 
-    result = []
+        return jsonify({
+            "success": True,
+            "applications": applications
+        }), 200
 
-    for application in applications:
-        result.append({
-            "id": application.id,
-            "status": application.status,
-            "remarks": application.remarks,
-            "applied_at": (
-                application.applied_at.isoformat()
-                if application.applied_at else None
-            ),
+    except Exception as e:
+        print(
+            "ADMIN APPLICATIONS ERROR:",
+            repr(e)
+        )
 
-            "student": {
-                "id": application.student.id,
-                "student_id": application.student.student_id,
-                "name": application.student.name
-            } if application.student else None,
-
-            "job": {
-                "id": application.job.id,
-                "title": application.job.title,
-                "company": (
-                    application.job.company.name
-                    if application.job.company
-                    else None
-                )
-            } if application.job else None
-        })
-
-    return jsonify({
-        "success": True,
-        "applications": result
-    }), 200
+        return jsonify({
+            "success": False,
+            "message": "Failed to load applications",
+            "error": str(e)
+        }), 500

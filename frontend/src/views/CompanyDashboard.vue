@@ -29,11 +29,15 @@ const editing = ref(false);
 const creatingJob = ref(false);
 const editingJob = ref(null);
 
-/* CSV EXPORT */
 const exportLoading = ref(false);
 const exportStatus = ref("");
 const exportTaskId = ref(null);
 let exportPollTimer = null;
+
+const reportLoading = ref(false);
+const reportStatus = ref("");
+const reportTaskId = ref(null);
+let reportPollTimer = null;
 
 const form = ref({
     name: "",
@@ -776,6 +780,152 @@ async function downloadExport() {
 }
 
 
+async function startPlacementReport() {
+
+    reportLoading.value = true;
+    reportStatus.value = "Starting report generation...";
+    error.value = "";
+    success.value = "";
+
+    try {
+
+        const response = await api.post(
+            "/api/company/placement-report"
+        );
+
+        reportTaskId.value =
+            response.data.task_id;
+
+        reportStatus.value =
+            "Report generation started...";
+
+        pollPlacementReport();
+
+    } catch (err) {
+
+        reportLoading.value = false;
+        reportStatus.value = "";
+
+        error.value =
+            err.response?.data?.message ||
+            "Failed to start placement report.";
+    }
+}
+
+
+function pollPlacementReport() {
+
+    if (reportPollTimer) {
+        clearTimeout(reportPollTimer);
+    }
+
+    reportPollTimer = setTimeout(
+        checkPlacementReport,
+        1000
+    );
+}
+
+
+async function checkPlacementReport() {
+
+    if (!reportTaskId.value) {
+        return;
+    }
+
+    try {
+
+        const response = await api.get(
+            `/api/company/placement-report/status/${reportTaskId.value}`
+        );
+
+        const status = response.data.status;
+
+        if (
+            status === "PENDING" ||
+            status === "STARTED"
+        ) {
+
+            reportStatus.value =
+                "Generating placement report...";
+
+            pollPlacementReport();
+
+            return;
+        }
+
+        if (status === "SUCCESS") {
+
+            reportStatus.value =
+                "Report generated successfully.";
+
+            reportLoading.value = false;
+
+            success.value =
+                `Report generated. ${response.data.total_applications || 0} applications and ${response.data.total_placements || 0} placements included.`;
+
+            openPlacementReport();
+
+            return;
+        }
+
+        reportLoading.value = false;
+        reportStatus.value = "";
+
+        error.value =
+            response.data.message ||
+            "Placement report generation failed.";
+
+    } catch (err) {
+
+        reportLoading.value = false;
+        reportStatus.value = "";
+
+        error.value =
+            err.response?.data?.message ||
+            "Failed to check report status.";
+    }
+}
+
+
+async function openPlacementReport() {
+
+    try {
+
+        const response = await api.get(
+            `/api/company/placement-report/download/${reportTaskId.value}`,
+            {
+                responseType: "blob"
+            }
+        );
+
+        const blob = new Blob(
+            [response.data],
+            {
+                type: "text/html"
+            }
+        );
+
+        const url =
+            window.URL.createObjectURL(blob);
+
+        window.open(
+            url,
+            "_blank"
+        );
+
+        setTimeout(() => {
+            window.URL.revokeObjectURL(url);
+        }, 60000);
+
+    } catch (err) {
+
+        error.value =
+            err.response?.data?.message ||
+            "Failed to open placement report.";
+    }
+}
+
+
 onMounted(() => {
     fetchCompanyProfile();
     fetchJobs();
@@ -986,6 +1136,18 @@ onMounted(() => {
                 }}
             </button>
 
+            <button
+                class="report-button"
+                @click="startPlacementReport"
+                :disabled="reportLoading"
+            >
+                {{
+                    reportLoading
+                        ? "Generating..."
+                        : "Generate Placement Report"
+                }}
+            </button>
+
         </div>
 
         <p
@@ -993,6 +1155,13 @@ onMounted(() => {
             class="export-status"
         >
             {{ exportStatus }}
+        </p>
+
+        <p
+            v-if="reportStatus"
+            class="report-status"
+        >
+            {{ reportStatus }}
         </p>
 
 
@@ -1676,6 +1845,34 @@ onMounted(() => {
 }
 
 .export-status {
+    padding: 10px 14px;
+    background: #e7f1ff;
+    color: #084298;
+    border-radius: 6px;
+    margin-bottom: 20px;
+}
+
+.report-button {
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    background: #0d6efd;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.report-button:hover {
+    opacity: 0.9;
+}
+
+.report-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.report-status {
     padding: 10px 14px;
     background: #e7f1ff;
     color: #084298;

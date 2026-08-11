@@ -1469,3 +1469,156 @@ def download_company_export(task_id):
         os.path.basename(filepath),
         as_attachment=True
     )
+
+
+@company_bp.route(
+    "/api/company/placement-report",
+    methods=["POST"]
+)
+@jwt_required()
+def start_placement_report():
+
+    from app.tasks.reports import generate_company_placement_report
+
+    user, company, error = get_current_company()
+
+    if error:
+        return error
+
+    task = generate_company_placement_report.delay(
+        company.id
+    )
+
+    return jsonify({
+        "success": True,
+        "message": "Placement report generation started",
+        "task_id": task.id
+    }), 202
+
+
+@company_bp.route(
+    "/api/company/placement-report/status/<task_id>",
+    methods=["GET"]
+)
+@jwt_required()
+def placement_report_status(task_id):
+
+    from celery.result import AsyncResult
+    from app.celery_app import celery
+
+    user, company, error = get_current_company()
+
+    if error:
+        return error
+
+    task = AsyncResult(
+        task_id,
+        app=celery
+    )
+
+    if task.state == "PENDING":
+        return jsonify({
+            "success": True,
+            "status": "PENDING"
+        }), 200
+
+    if task.state == "STARTED":
+        return jsonify({
+            "success": True,
+            "status": "STARTED"
+        }), 200
+
+    if task.state == "SUCCESS":
+
+        result = task.result
+
+        if not result.get("success"):
+            return jsonify({
+                "success": False,
+                "status": "FAILURE",
+                "message": result.get(
+                    "message",
+                    "Report generation failed."
+                )
+            }), 500
+
+        return jsonify({
+            "success": True,
+            "status": "SUCCESS",
+            "filename": result.get("filename"),
+            "total_applications":
+                result.get("total_applications", 0),
+            "total_placements":
+                result.get("total_placements", 0)
+        }), 200
+
+    if task.state == "FAILURE":
+        return jsonify({
+            "success": False,
+            "status": "FAILURE",
+            "message": "Placement report generation failed."
+        }), 500
+
+    return jsonify({
+        "success": True,
+        "status": task.state
+    }), 200
+
+
+@company_bp.route(
+    "/api/company/placement-report/download/<task_id>",
+    methods=["GET"]
+)
+@jwt_required()
+def download_placement_report(task_id):
+
+    from celery.result import AsyncResult
+    from app.celery_app import celery
+
+    user, company, error = get_current_company()
+
+    if error:
+        return error
+
+    task = AsyncResult(
+        task_id,
+        app=celery
+    )
+
+    if not task.ready():
+        return jsonify({
+            "success": False,
+            "message": "Report is not ready yet."
+        }), 400
+
+    if task.failed():
+        return jsonify({
+            "success": False,
+            "message": "Report generation failed."
+        }), 500
+
+    result = task.result
+
+    if not result.get("success"):
+        return jsonify({
+            "success": False,
+            "message": result.get(
+                "message",
+                "Report generation failed."
+            )
+        }), 500
+
+    filepath = result.get("filepath")
+
+    if not filepath or not os.path.exists(filepath):
+        return jsonify({
+            "success": False,
+            "message": "Report file not found."
+        }), 404
+
+    return send_from_directory(
+        os.path.dirname(filepath),
+        os.path.basename(filepath),
+        as_attachment=False,
+        mimetype="text/html"
+    )

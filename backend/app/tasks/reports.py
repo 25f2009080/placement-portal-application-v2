@@ -2,51 +2,75 @@ import os
 from datetime import datetime, timezone
 
 from app.celery_app import celery
-from app.models import Company, Application, Placement
 
 
 @celery.task
 def generate_company_placement_report(company_id):
-    company = Company.query.get(company_id)
 
-    if not company:
-        return {
-            "success": False,
-            "message": "Company not found"
-        }
+    from app import create_app
 
-    applications = (
-        Application.query
-        .join(Application.job)
-        .filter_by(company_id=company.id)
-        .all()
-    )
+    flask_app = create_app()
 
-    placements = Placement.query.filter_by(
-        company_id=company.id
-    ).all()
+    with flask_app.app_context():
 
-    total_applications = len(applications)
-    applied = sum(
-        1 for a in applications if a.status == "Applied"
-    )
-    shortlisted = sum(
-        1 for a in applications if a.status == "Shortlisted"
-    )
-    selected = sum(
-        1 for a in applications
-        if a.status in ["Selected", "Offer", "Placed"]
-    )
-    rejected = sum(
-        1 for a in applications if a.status == "Rejected"
-    )
+        from app.models import Company, Application, Placement
 
-    html = f"""
+        company = Company.query.get(company_id)
+
+        if not company:
+            return {
+                "success": False,
+                "message": "Company not found"
+            }
+
+        applications = (
+            Application.query
+            .join(Application.job)
+            .filter_by(company_id=company.id)
+            .all()
+        )
+
+        placements = Placement.query.filter_by(
+            company_id=company.id
+        ).all()
+
+        total_applications = len(applications)
+
+        applied = sum(
+            1
+            for a in applications
+            if a.status == "Applied"
+        )
+
+        shortlisted = sum(
+            1
+            for a in applications
+            if a.status == "Shortlisted"
+        )
+
+        selected = sum(
+            1
+            for a in applications
+            if a.status in [
+                "Selected",
+                "Offer",
+                "Placed"
+            ]
+        )
+
+        rejected = sum(
+            1
+            for a in applications
+            if a.status == "Rejected"
+        )
+
+        html = f"""
 <!DOCTYPE html>
 <html>
 <head>
     <meta charset="UTF-8">
     <title>Placement Report - {company.name}</title>
+
     <style>
         body {{
             font-family: Arial, sans-serif;
@@ -103,6 +127,7 @@ def generate_company_placement_report(company_id):
 <h2>Application Statistics</h2>
 
 <div class="summary">
+
     <div class="card">
         <strong>Total Applications</strong><br>
         {total_applications}
@@ -127,11 +152,13 @@ def generate_company_placement_report(company_id):
         <strong>Rejected</strong><br>
         {rejected}
     </div>
+
 </div>
 
 <h2>Placement Details</h2>
 
 <table>
+
     <tr>
         <th>Student</th>
         <th>Position</th>
@@ -141,32 +168,35 @@ def generate_company_placement_report(company_id):
     </tr>
 """
 
-    for placement in placements:
-        student_name = (
-            placement.student.name
-            if placement.student
-            else "Unknown"
-        )
+        for placement in placements:
 
-        salary = (
-            f"₹{placement.salary:,.2f}"
-            if placement.salary is not None
-            else "-"
-        )
+            student_name = (
+                placement.student.name
+                if placement.student
+                else "Unknown"
+            )
 
-        joining_date = (
-            placement.joining_date.isoformat()
-            if placement.joining_date
-            else "-"
-        )
+            salary = (
+                f"₹{placement.salary:,.2f}"
+                if placement.salary is not None
+                else "-"
+            )
 
-        placed_at = (
-            placement.placed_at.strftime("%Y-%m-%d %H:%M")
-            if placement.placed_at
-            else "-"
-        )
+            joining_date = (
+                placement.joining_date.isoformat()
+                if placement.joining_date
+                else "-"
+            )
 
-        html += f"""
+            placed_at = (
+                placement.placed_at.strftime(
+                    "%Y-%m-%d %H:%M"
+                )
+                if placement.placed_at
+                else "-"
+            )
+
+            html += f"""
     <tr>
         <td>{student_name}</td>
         <td>{placement.position}</td>
@@ -176,37 +206,45 @@ def generate_company_placement_report(company_id):
     </tr>
 """
 
-    html += """
+        html += """
 </table>
 
 </body>
 </html>
 """
 
-    report_folder = os.path.join(
-        "instance",
-        "reports"
-    )
+        report_folder = os.path.join(
+            flask_app.instance_path,
+            "reports"
+        )
 
-    os.makedirs(report_folder, exist_ok=True)
+        os.makedirs(
+            report_folder,
+            exist_ok=True
+        )
 
-    filename = (
-        f"placement_report_company_{company.id}_"
-        f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.html"
-    )
+        filename = (
+            f"placement_report_company_{company.id}_"
+            f"{datetime.now(timezone.utc).strftime('%Y%m%d_%H%M%S')}.html"
+        )
 
-    filepath = os.path.join(
-        report_folder,
-        filename
-    )
+        filepath = os.path.join(
+            report_folder,
+            filename
+        )
 
-    with open(filepath, "w", encoding="utf-8") as file:
-        file.write(html)
+        with open(
+            filepath,
+            "w",
+            encoding="utf-8"
+        ) as file:
 
-    return {
-        "success": True,
-        "filename": filename,
-        "filepath": filepath,
-        "total_applications": total_applications,
-        "total_placements": len(placements)
-    }
+            file.write(html)
+
+        return {
+            "success": True,
+            "filename": filename,
+            "filepath": filepath,
+            "total_applications": total_applications,
+            "total_placements": len(placements)
+        }

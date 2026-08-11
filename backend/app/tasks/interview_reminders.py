@@ -1,76 +1,92 @@
 from datetime import datetime, timedelta, timezone
 
 from app.celery_app import celery
-from app.models import Application
 from app.services.email_service import send_email
 
 
 @celery.task
 def send_interview_reminders():
-    now = datetime.now(timezone.utc)
 
-    reminder_window_start = now + timedelta(hours=23)
-    reminder_window_end = now + timedelta(hours=25)
+    from app import create_app
 
-    applications = Application.query.filter(
-        Application.interview_datetime.isnot(None),
-        Application.interview_datetime >= reminder_window_start,
-        Application.interview_datetime <= reminder_window_end,
-        Application.status.in_([
-            "Shortlisted",
-            "Interview"
-        ])
-    ).all()
+    flask_app = create_app()
 
-    sent_count = 0
+    with flask_app.app_context():
 
-    for application in applications:
+        from app.models import Application
 
-        student = application.student
-        job = application.job
+        now = datetime.now(timezone.utc)
 
-        if not student or not student.user:
-            continue
+        reminder_window_start = now + timedelta(hours=23)
+        reminder_window_end = now + timedelta(hours=24)
 
-        if not job:
-            continue
+        applications = Application.query.filter(
+            Application.interview_datetime.isnot(None),
+            Application.interview_datetime >= reminder_window_start,
+            Application.interview_datetime < reminder_window_end,
+            Application.status.in_([
+                "Shortlisted",
+                "Interview"
+            ])
+        ).all()
 
-        email = student.user.email
+        sent_count = 0
 
-        if not email:
-            continue
+        for application in applications:
 
-        interview_time = application.interview_datetime
+            student = application.student
+            job = application.job
 
-        subject = "Interview Reminder - Placement Portal"
+            if not student or not student.user:
+                continue
 
-        body = (
-            f"Hello {student.name},\n\n"
-            f"This is a reminder that you have an interview "
-            f"scheduled for the following placement:\n\n"
-            f"Company: {job.company.name}\n"
-            f"Position: {job.title}\n"
-            f"Interview Time: {interview_time}\n"
-            f"Mode: {application.interview_mode or 'Not specified'}\n"
-            f"Location: "
-            f"{application.interview_location or 'Not specified'}\n\n"
-            f"Interview Notes:\n"
-            f"{application.interview_notes or 'None'}\n\n"
-            f"Please make sure you are prepared and available "
-            f"for the interview.\n\n"
-            f"Regards,\n"
-            f"Placement Portal"
-        )
+            if not job:
+                continue
 
-        send_email(
-            email,
-            subject,
-            body
-        )
+            email = student.user.email
 
-        sent_count += 1
+            if not email:
+                continue
 
-    return {
-        "reminders_found": len(applications),
-        "reminders_processed": sent_count
-    }
+            interview_time = application.interview_datetime
+
+            subject = "Interview Reminder - Placement Portal"
+
+            body = (
+                f"Hello {student.name},\n\n"
+                f"This is a reminder that you have an interview "
+                f"scheduled for the following placement:\n\n"
+                f"Company: {job.company.name}\n"
+                f"Position: {job.title}\n"
+                f"Interview Time: {interview_time}\n"
+                f"Mode: "
+                f"{application.interview_mode or 'Not specified'}\n"
+                f"Location: "
+                f"{application.interview_location or 'Not specified'}\n\n"
+                f"Interview Notes:\n"
+                f"{application.interview_notes or 'None'}\n\n"
+                f"Please make sure you are prepared and available "
+                f"for the interview.\n\n"
+                f"Regards,\n"
+                f"Placement Portal"
+            )
+
+            try:
+                send_email(
+                    email,
+                    subject,
+                    body
+                )
+
+                sent_count += 1
+
+            except Exception as exc:
+                print(
+                    f"Failed to send interview reminder "
+                    f"for application {application.id}: {exc}"
+                )
+
+        return {
+            "reminders_found": len(applications),
+            "reminders_processed": sent_count
+        }

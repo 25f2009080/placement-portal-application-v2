@@ -18,8 +18,6 @@ const successMessage = ref("");
 const isEditing = ref(false);
 
 const search = ref("");
-const companySearch = ref("");
-const skillsSearch = ref("");
 const applyingJobId = ref(null);
 
 const resumeFile = ref(null);
@@ -77,14 +75,6 @@ const loadJobs = async () => {
 
         if (search.value.trim()) {
             params.search = search.value.trim();
-        }
-
-        if (companySearch.value.trim()) {
-            params.company = companySearch.value.trim();
-        }
-
-        if (skillsSearch.value.trim()) {
-            params.skills = skillsSearch.value.trim();
         }
 
         const response = await api.get(
@@ -292,8 +282,6 @@ const viewOfferLetter = async (application) => {
 
 const clearSearch = () => {
     search.value = "";
-    companySearch.value = "";
-    skillsSearch.value = "";
 
     loadJobs();
 };
@@ -1044,53 +1032,26 @@ onMounted(async () => {
 
                             <div class="row g-3 align-items-end">
 
-                                <div class="col-lg-4 col-md-6">
+                                <div class="col-md-9">
                                     <label class="form-label fw-semibold">
-                                        Search
+                                        Search Placement Drives
                                     </label>
 
                                     <input
                                         v-model="search"
                                         type="text"
                                         class="form-control"
-                                        placeholder="Company, position or skill"
+                                        placeholder="Search by company, position or skill"
                                         @keyup.enter="loadJobs"
                                     />
                                 </div>
 
-                                <div class="col-lg-3 col-md-6">
-                                    <label class="form-label fw-semibold">
-                                        Company
-                                    </label>
-
-                                    <input
-                                        v-model="companySearch"
-                                        type="text"
-                                        class="form-control"
-                                        placeholder="Company name"
-                                        @keyup.enter="loadJobs"
-                                    />
-                                </div>
-
-                                <div class="col-lg-3 col-md-6">
-                                    <label class="form-label fw-semibold">
-                                        Required Skills
-                                    </label>
-
-                                    <input
-                                        v-model="skillsSearch"
-                                        type="text"
-                                        class="form-control"
-                                        placeholder="Example: Python"
-                                        @keyup.enter="loadJobs"
-                                    />
-                                </div>
-
-                                <div class="col-lg-2 col-md-6">
+                                <div class="col-md-3">
 
                                     <div class="d-flex gap-2">
 
                                         <button
+                                            type="button"
                                             class="btn btn-primary flex-fill"
                                             @click="loadJobs"
                                         >
@@ -1098,6 +1059,7 @@ onMounted(async () => {
                                         </button>
 
                                         <button
+                                            type="button"
                                             class="btn btn-outline-secondary"
                                             @click="clearSearch"
                                         >

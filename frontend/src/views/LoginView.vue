@@ -34,7 +34,6 @@ const handleLogin = async () => {
         } else {
             router.push("/student");
         }
-
     } catch (err) {
         error.value =
             err.response?.data?.message || "Login failed";
@@ -43,39 +42,115 @@ const handleLogin = async () => {
 </script>
 
 <template>
-    <div>
-        <h1>Login</h1>
+    <div class="min-vh-100 bg-light d-flex align-items-center py-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-sm-10 col-md-7 col-lg-5 col-xl-4">
+                    <div class="text-center mb-4">
+                        <router-link
+                            to="/"
+                            class="text-decoration-none"
+                        >
+                            <h2 class="fw-bold text-primary mb-2">
+                                Placement Portal
+                            </h2>
+                        </router-link>
 
-        <input
-            v-model="username"
-            placeholder="Username"
-        />
+                        <p class="text-secondary mb-0">
+                            Sign in to continue to your dashboard
+                        </p>
+                    </div>
 
-        <br><br>
+                    <div class="card border-0 shadow-lg rounded-4">
+                        <div class="card-body p-4 p-md-5">
+                            <h3 class="fw-bold text-dark mb-1">
+                                Welcome back
+                            </h3>
 
-        <input
-            v-model="password"
-            type="password"
-            placeholder="Password"
-        />
+                            <p class="text-secondary mb-4">
+                                Enter your credentials to sign in.
+                            </p>
 
-        <br><br>
+                            <form @submit.prevent="handleLogin">
+                                <div class="mb-3">
+                                    <label
+                                        for="username"
+                                        class="form-label fw-semibold"
+                                    >
+                                        Username
+                                    </label>
 
-        <button @click="handleLogin">
-            Login
-        </button>
+                                    <input
+                                        id="username"
+                                        v-model="username"
+                                        type="text"
+                                        class="form-control form-control-lg"
+                                        placeholder="Enter your username"
+                                        autocomplete="username"
+                                        required
+                                    />
+                                </div>
 
-        <br><br>
+                                <div class="mb-4">
+                                    <label
+                                        for="password"
+                                        class="form-label fw-semibold"
+                                    >
+                                        Password
+                                    </label>
 
-        <p>
-            New user?
-            <router-link to="/register">
-                Register here
-            </router-link>
-        </p>
+                                    <input
+                                        id="password"
+                                        v-model="password"
+                                        type="password"
+                                        class="form-control form-control-lg"
+                                        placeholder="Enter your password"
+                                        autocomplete="current-password"
+                                        required
+                                    />
+                                </div>
 
-        <p style="color:red">
-            {{ error }}
-        </p>
+                                <div
+                                    v-if="error"
+                                    class="alert alert-danger"
+                                    role="alert"
+                                >
+                                    {{ error }}
+                                </div>
+
+                                <button
+                                    type="submit"
+                                    class="btn btn-primary btn-lg w-100"
+                                >
+                                    Login
+                                </button>
+                            </form>
+
+                            <div class="text-center mt-4">
+                                <p class="text-secondary mb-2">
+                                    New to the Placement Portal?
+                                </p>
+
+                                <router-link
+                                    to="/register"
+                                    class="fw-semibold text-primary text-decoration-none"
+                                >
+                                    Create an account
+                                </router-link>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center mt-4">
+                        <router-link
+                            to="/"
+                            class="text-secondary text-decoration-none"
+                        >
+                            ← Back to Home
+                        </router-link>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>

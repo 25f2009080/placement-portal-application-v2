@@ -34,17 +34,43 @@ async function loadDashboard() {
 
     try {
 
-        await Promise.all([
-            loadStats(),
-            loadCompanies(),
-            loadStudents(),
-            loadJobs(),
-            loadApplications()
-        ]);
+        // Load requests one at a time.
+        // This avoids opening multiple authenticated
+        // connections to Flask simultaneously.
+
+        try {
+            await loadStats();
+        } catch (err) {
+            console.error("Failed to load stats:", err);
+        }
+
+        try {
+            await loadCompanies();
+        } catch (err) {
+            console.error("Failed to load companies:", err);
+        }
+
+        try {
+            await loadStudents();
+        } catch (err) {
+            console.error("Failed to load students:", err);
+        }
+
+        try {
+            await loadJobs();
+        } catch (err) {
+            console.error("Failed to load jobs:", err);
+        }
+
+        try {
+            await loadApplications();
+        } catch (err) {
+            console.error("Failed to load applications:", err);
+        }
 
     } catch (err) {
 
-        console.error(err);
+        console.error("Admin dashboard error:", err);
 
         error.value =
             err.response?.data?.message ||

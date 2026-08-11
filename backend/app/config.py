@@ -4,7 +4,7 @@ BASE_DIR = os.path.abspath(os.path.dirname(os.path.dirname(__file__)))
 
 class Config:
     SECRET_KEY = os.environ.get("SECRET_KEY") or "verysecret321"
-    JWT_SECRET_KEY = "jwtsecret123"
+    JWT_SECRET_KEY = "placement-portal-secret-key-2026-very-secure"
 
     SQLALCHEMY_DATABASE_URI = (
         "sqlite:///" + os.path.join(BASE_DIR, "instance", "placement_portal.db")
@@ -16,5 +16,5 @@ class Config:
 
     MAX_CONTENT_LENGTH = 5 * 1024 * 1024     #5MB Limit
 
-    CACHE_TYPE = "RedisCache"
-    CACHE_REDIS_URL = "redis://localhost:6379/1"
+    CACHE_TYPE = "SimpleCache"
+    CACHE_DEFAULT_TIMEOUT = 60

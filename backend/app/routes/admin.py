@@ -24,43 +24,47 @@ def admin_required():
 
 
 def get_cached_admin_companies(search):
+    try:
+        query = Company.query
 
-    query = Company.query
-
-    if search:
-        query = query.filter(
-            db.or_(
-                Company.name.ilike(f"%{search}%"),
-                Company.industry.ilike(f"%{search}%")
+        if search:
+            query = query.filter(
+                db.or_(
+                    Company.name.ilike(f"%{search}%"),
+                    Company.industry.ilike(f"%{search}%")
+                )
             )
-        )
 
-    companies = query.order_by(
-        Company.created_at.desc()
-    ).all()
+        companies = query.order_by(
+            Company.created_at.desc()
+        ).all()
 
-    result = []
+        result = []
 
-    for company in companies:
-        result.append({
-            "id": company.id,
-            "company_id": company.company_id,
-            "name": company.name,
-            "industry": company.industry,
-            "location": company.location,
-            "website": company.website,
-            "description": company.description,
-            "hr_name": company.hr_name,
-            "hr_email": company.hr_email,
-            "approved": company.approved,
-            "is_active": company.is_active,
-            "created_at": (
-                company.created_at.isoformat()
-                if company.created_at else None
-            )
-        })
+        for company in companies:
+            result.append({
+                "id": company.id,
+                "company_id": company.company_id,
+                "name": company.name,
+                "industry": company.industry,
+                "location": company.location,
+                "website": company.website,
+                "description": company.description,
+                "hr_name": company.hr_name,
+                "hr_email": company.hr_email,
+                "approved": bool(company.approved),
+                "is_active": bool(company.is_active),
+                "created_at": (
+                    company.created_at.isoformat()
+                    if company.created_at else None
+                )
+            })
 
-    return result
+        return result
+
+    except Exception as e:
+        print("ERROR loading admin companies:", repr(e))
+        raise
 
 
 
@@ -181,17 +185,24 @@ def get_companies():
             "message": "Admin access required"
         }), 403
 
-    search = request.args.get(
-        "search",
-        ""
-    ).strip().lower()
+    try:
+        search = request.args.get("search", "").strip().lower()
 
-    companies = get_cached_admin_companies(search)
+        companies = get_cached_admin_companies(search)
 
-    return jsonify({
-        "success": True,
-        "companies": companies
-    }), 200
+        return jsonify({
+            "success": True,
+            "companies": companies
+        }), 200
+
+    except Exception as e:
+        print("ADMIN COMPANIES ERROR:", repr(e))
+
+        return jsonify({
+            "success": False,
+            "message": "Failed to load companies",
+            "error": str(e)
+        }), 500
 
 
 @admin_bp.route(
@@ -223,13 +234,6 @@ def approve_company(company_id):
 
     db.session.commit()
 
-    cache.delete_memoized(
-        get_cached_admin_companies
-    )
-
-    cache.delete_memoized(
-        get_cached_admin_jobs
-    )
 
     return jsonify({
         "success": True,
@@ -270,13 +274,6 @@ def deactivate_company(company_id):
 
     db.session.commit()
 
-    cache.delete_memoized(
-        get_cached_admin_companies
-    )
-
-    cache.delete_memoized(
-        get_cached_admin_jobs
-    )
 
     return jsonify({
         "success": True,
@@ -315,13 +312,6 @@ def activate_company(company_id):
 
     db.session.commit()
 
-    cache.delete_memoized(
-        get_cached_admin_companies
-    )
-
-    cache.delete_memoized(
-        get_cached_admin_jobs
-    )
 
     return jsonify({
         "success": True,
@@ -381,9 +371,6 @@ def deactivate_student(student_id):
 
     db.session.commit()
 
-    cache.delete_memoized(
-        get_cached_admin_students
-    )
 
     return jsonify({
         "success": True,
@@ -419,9 +406,6 @@ def activate_student(student_id):
 
     db.session.commit()
 
-    cache.delete_memoized(
-        get_cached_admin_students
-    )
 
     return jsonify({
         "success": True,
@@ -477,9 +461,6 @@ def approve_job(job_id):
 
     db.session.commit()
 
-    cache.delete_memoized(
-        get_cached_admin_jobs
-    )
 
     return jsonify({
         "success": True,
@@ -516,9 +497,6 @@ def reject_job(job_id):
 
     db.session.commit()
 
-    cache.delete_memoized(
-        get_cached_admin_jobs
-    )
 
     return jsonify({
         "success": True,
@@ -555,9 +533,6 @@ def deactivate_job(job_id):
 
     db.session.commit()
 
-    cache.delete_memoized(
-        get_cached_admin_jobs
-    )
 
     return jsonify({
         "success": True,
@@ -600,10 +575,6 @@ def activate_job(job_id):
 
     db.session.commit()
 
-    cache.delete_memoized(
-        get_cached_admin_jobs
-    )
-
     return jsonify({
         "success": True,
         "message": "Job posting reactivated successfully"
@@ -637,14 +608,6 @@ def revoke_company_approval(company_id):
     company.approved = False
 
     db.session.commit()
-
-    cache.delete_memoized(
-        get_cached_admin_companies
-    )
-
-    cache.delete_memoized(
-        get_cached_admin_jobs
-    )
 
     return jsonify({
         "success": True,
